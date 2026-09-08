@@ -12,7 +12,7 @@ export function IncidentPriorityBadge({ priority }: IncidentPriorityBadgeProps) 
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium ${getPriorityClassName(priority)}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border px-2 py-0.5 text-xs font-medium ${getPriorityClassName(priority)}`}
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
       {getPriorityLabel(priority)}

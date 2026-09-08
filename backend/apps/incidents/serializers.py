@@ -6,6 +6,21 @@ from apps.common.choices import AccountStatus, IncidentPriority, UserRole
 from apps.incidents.models import Category, Incident, IncidentImage, Location
 
 
+def get_current_assignment_data(obj):
+    prefetched = getattr(obj, "prefetched_current_assignments", None)
+    if prefetched is not None:
+        assignment = prefetched[0] if prefetched else None
+    else:
+        assignment = obj.assignments.filter(is_current=True).select_related(
+            "assigned_official",
+            "assigned_by",
+            "responsible_party",
+        ).first()
+    if not assignment:
+        return None
+    return AssignmentSerializer(assignment).data
+
+
 class ReporterAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -15,8 +30,6 @@ class ReporterAdminSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "mc_number",
-            "department",
-            "year",
         ]
         read_only_fields = fields
 
@@ -149,14 +162,7 @@ class IncidentDeanDetailSerializer(IncidentAdminReviewSerializer):
         fields = IncidentAdminReviewSerializer.Meta.fields + ["current_assignment"]
 
     def get_current_assignment(self, obj):
-        assignment = obj.assignments.filter(is_current=True).select_related(
-            "assigned_official",
-            "assigned_by",
-            "responsible_party",
-        ).first()
-        if not assignment:
-            return None
-        return AssignmentSerializer(assignment).data
+        return get_current_assignment_data(obj)
 
 
 class IncidentResolveSerializer(serializers.Serializer):
@@ -170,14 +176,7 @@ class IncidentOfficialDetailSerializer(IncidentDetailSerializer):
         fields = IncidentDetailSerializer.Meta.fields + ["current_assignment"]
 
     def get_current_assignment(self, obj):
-        assignment = obj.assignments.filter(is_current=True).select_related(
-            "assigned_official",
-            "assigned_by",
-            "responsible_party",
-        ).first()
-        if not assignment:
-            return None
-        return AssignmentSerializer(assignment).data
+        return get_current_assignment_data(obj)
 
 
 class IncidentStudentDetailSerializer(IncidentDetailSerializer):
@@ -187,17 +186,18 @@ class IncidentStudentDetailSerializer(IncidentDetailSerializer):
         fields = IncidentDetailSerializer.Meta.fields + ["current_assignment"]
 
     def get_current_assignment(self, obj):
-        assignment = obj.assignments.filter(is_current=True).select_related(
-            "assigned_official",
-            "assigned_by",
-            "responsible_party",
-        ).first()
-        if not assignment:
-            return None
-        return AssignmentSerializer(assignment).data
+        return get_current_assignment_data(obj)
 
 
 class IncidentCreateSerializer(serializers.ModelSerializer):
+    location_name = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        max_length=255,
+        write_only=True,
+        trim_whitespace=True,
+    )
+
     class Meta:
         model = Incident
         fields = [
@@ -205,8 +205,12 @@ class IncidentCreateSerializer(serializers.ModelSerializer):
             "description",
             "category",
             "location",
+            "location_name",
             "visibility",
         ]
+        extra_kwargs = {
+            "location": {"required": False},
+        }
 
     def validate_category(self, value):
         if not value.is_active:
@@ -214,13 +218,43 @@ class IncidentCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_location(self, value):
-        if not value.is_active:
+        if value and not value.is_active:
             raise serializers.ValidationError("Selected location is not available.")
         return value
 
+    def validate_location_name(self, value):
+        normalized = value.strip()
+        if len(normalized) < 2:
+            raise serializers.ValidationError(
+                "Location must be at least 2 characters."
+            )
+        return normalized
+
+    def validate(self, attrs):
+        location = attrs.get("location")
+        location_name = attrs.get("location_name")
+
+        if location and location_name:
+            attrs.pop("location_name", None)
+        elif not location and not location_name:
+            raise serializers.ValidationError(
+                {"location_name": "Please enter a location."}
+            )
+        return attrs
+
     def create(self, validated_data):
+        location_name = validated_data.pop("location_name", None)
+        if location_name:
+            validated_data["location"] = self._resolve_location(location_name)
         validated_data["reporter"] = self.context["request"].user
         return super().create(validated_data)
+
+    @staticmethod
+    def _resolve_location(name: str) -> Location:
+        existing = Location.objects.filter(name__iexact=name, is_active=True).first()
+        if existing:
+            return existing
+        return Location.objects.create(name=name, is_active=True)
 
 
 class IncidentActionSerializer(serializers.Serializer):

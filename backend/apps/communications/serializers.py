@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.common.choices import UserRole
 from apps.communications.models import Message
 
 
@@ -27,3 +28,12 @@ class MessageSerializer(serializers.ModelSerializer):
             "sender_role",
             "created_at",
         ]
+
+    def validate_is_internal(self, value):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, "role", None) not in {UserRole.ADMIN, UserRole.DEAN}:
+            return False
+        return value

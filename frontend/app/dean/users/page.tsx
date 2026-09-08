@@ -7,9 +7,12 @@ import { AccountStatusBadge } from "@/components/users/AccountStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Select } from "@/components/ui/Select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { formatApiError } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
+import { formatSriLankaPhoneInput, getSriLankaPhoneError } from "@/lib/phone";
 import { formatDate, getPositionLabel } from "@/lib/format";
 import { officialService } from "@/services/officials";
 import type { OfficialAccount, OfficialPosition } from "@/types";
@@ -27,7 +30,6 @@ type OfficialFormState = {
   email: string;
   phone: string;
   position: OfficialPosition | "";
-  department: string;
 };
 
 const emptyForm: OfficialFormState = {
@@ -35,7 +37,6 @@ const emptyForm: OfficialFormState = {
   email: "",
   phone: "",
   position: "",
-  department: "Faculty of Management Studies and Commerce",
 };
 
 function DeanUsersContent() {
@@ -71,14 +72,20 @@ function DeanUsersContent() {
       setError("Select a position for the official account.");
       return;
     }
+
+    const phoneError = form.phone.trim() ? getSriLankaPhoneError(form.phone, false) : "";
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await officialService.create({
         name: form.name,
         email: form.email,
-        phone: form.phone,
+        phone: form.phone.trim() ? formatSriLankaPhoneInput(form.phone) : "",
         position: form.position,
-        department: form.department,
       });
       setSuccess("Official account created. An activation email has been sent.");
       setForm(emptyForm);
@@ -109,77 +116,15 @@ function DeanUsersContent() {
         Back to overview
       </Link>
 
-      <h1 className="mt-6 text-[32px] font-semibold mb-2">Official accounts</h1>
+      <h1 className="mt-6 mb-2 text-[26px] font-semibold md:text-[32px]">Official accounts</h1>
       <p className="text-text-secondary mb-8">
         Create and manage official accounts. Officials activate their own passwords by email.
       </p>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="border border-border bg-surface">
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-[18px] font-semibold">Officials</h2>
-          </div>
-          {isLoading ? (
-            <div className="animate-pulse px-6 py-8">
-              <div className="h-4 w-1/3 rounded-sm bg-border" />
-            </div>
-          ) : officials.length === 0 ? (
-            <div className="px-6 py-8">
-              <p className="font-medium">No official accounts yet.</p>
-              <p className="mt-1 text-sm text-text-secondary">
-                Use the form on the right to invite your first official.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
-                <thead className="border-b border-border text-text-muted">
-                  <tr>
-                    <th className="px-6 py-3 font-medium">Name</th>
-                    <th className="px-6 py-3 font-medium">Position</th>
-                    <th className="px-6 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium">Created</th>
-                    <th className="px-6 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {officials.map((official) => (
-                    <tr key={official.id} className="border-b border-border last:border-b-0">
-                      <td className="px-6 py-4">
-                        <p className="font-medium">{official.name}</p>
-                        <p className="text-text-muted">{official.email}</p>
-                      </td>
-                      <td className="px-6 py-4">{getPositionLabel(official.position)}</td>
-                      <td className="px-6 py-4">
-                        <AccountStatusBadge status={official.status} />
-                      </td>
-                      <td className="px-6 py-4 text-text-muted">
-                        {formatDate(official.created_at)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {official.status !== "INVITED" ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => toggleStatus(official)}
-                          >
-                            {official.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
-                          </Button>
-                        ) : (
-                          <span className="text-sm text-text-muted">Invitation pending</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
         <form
           onSubmit={handleSubmit}
-          className="border border-border bg-surface p-6"
+          className="order-1 border border-border bg-surface p-4 md:p-6 lg:order-2"
         >
           <h2 className="text-[18px] font-semibold mb-4">Create official account</h2>
 
@@ -188,7 +133,7 @@ function DeanUsersContent() {
               id="name"
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="Dr. Saman Perera"
+              placeholder={placeholders.fullName}
               required
             />
           </FormField>
@@ -199,7 +144,7 @@ function DeanUsersContent() {
               type="email"
               value={form.email}
               onChange={(event) => setForm({ ...form, email: event.target.value })}
-              placeholder="official@usj.ac.lk"
+              placeholder={placeholders.officialEmail}
               required
             />
           </FormField>
@@ -207,13 +152,13 @@ function DeanUsersContent() {
           <FormField
             label="Contact number"
             htmlFor="phone"
-            hint="Optional. Used for operational contact."
+            hint="Optional. Enter your mobile number after +94."
           >
-            <Input
+            <PhoneInput
               id="phone"
               value={form.phone}
-              onChange={(event) => setForm({ ...form, phone: event.target.value })}
-              placeholder="0712345678"
+              onChange={(value) => setForm({ ...form, phone: value })}
+              placeholder={placeholders.phone}
             />
           </FormField>
 
@@ -233,15 +178,6 @@ function DeanUsersContent() {
                 </option>
               ))}
             </Select>
-          </FormField>
-
-          <FormField label="Department" htmlFor="department">
-            <Input
-              id="department"
-              value={form.department}
-              onChange={(event) => setForm({ ...form, department: event.target.value })}
-              placeholder="Faculty of Management Studies and Commerce"
-            />
           </FormField>
 
           {success ? (
@@ -264,6 +200,102 @@ function DeanUsersContent() {
             Create account
           </Button>
         </form>
+
+        <div className="order-2 border border-border bg-surface lg:order-1">
+          <div className="border-b border-border px-4 py-4 md:px-6">
+            <h2 className="text-[18px] font-semibold">Officials</h2>
+          </div>
+          {isLoading ? (
+            <div className="animate-pulse px-4 py-8 md:px-6">
+              <div className="h-4 w-1/3 rounded-sm bg-border" />
+            </div>
+          ) : officials.length === 0 ? (
+            <div className="px-4 py-8 md:px-6">
+              <p className="font-medium">No official accounts yet.</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Use the form to invite your first official.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-border md:hidden">
+                {officials.map((official) => (
+                  <div key={official.id} className="px-4 py-4">
+                    <p className="font-medium">{official.name}</p>
+                    <p className="text-sm text-text-muted">{official.email}</p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {getPositionLabel(official.position)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <AccountStatusBadge status={official.status} />
+                      <span className="text-xs text-text-muted">
+                        {formatDate(official.created_at)}
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      {official.status !== "INVITED" ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="w-full"
+                          onClick={() => toggleStatus(official)}
+                        >
+                          {official.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
+                        </Button>
+                      ) : (
+                        <span className="text-sm text-text-muted">Invitation pending</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="border-b border-border text-text-muted">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">Name</th>
+                      <th className="px-6 py-3 font-medium">Position</th>
+                      <th className="px-6 py-3 font-medium">Status</th>
+                      <th className="px-6 py-3 font-medium">Created</th>
+                      <th className="px-6 py-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {officials.map((official) => (
+                      <tr key={official.id} className="border-b border-border last:border-b-0">
+                        <td className="px-6 py-4">
+                          <p className="font-medium">{official.name}</p>
+                          <p className="text-text-muted">{official.email}</p>
+                        </td>
+                        <td className="px-6 py-4">{getPositionLabel(official.position)}</td>
+                        <td className="px-6 py-4">
+                          <AccountStatusBadge status={official.status} />
+                        </td>
+                        <td className="px-6 py-4 text-text-muted">
+                          {formatDate(official.created_at)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {official.status !== "INVITED" ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => toggleStatus(official)}
+                            >
+                              {official.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
+                            </Button>
+                          ) : (
+                            <span className="text-sm text-text-muted">Invitation pending</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </section>
   );

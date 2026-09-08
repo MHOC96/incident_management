@@ -112,15 +112,21 @@ def resolve_assigned_incident(incident):
         related_incident=incident,
     )
 
-    for dean in User.objects.filter(role=UserRole.DEAN, status=AccountStatus.ACTIVE):
-        Notification.objects.create(
-            user=dean,
-            title="Incident ready for closure",
-            message=(
-                f"Incident {incident.incident_number} has been resolved and awaits dean review."
-            ),
-            notification_type=NotificationType.INCIDENT_RESOLVED,
-            related_incident=incident,
-        )
+    Notification.objects.bulk_create(
+        [
+            Notification(
+                user=dean,
+                title="Incident ready for closure",
+                message=(
+                    f"Incident {incident.incident_number} has been resolved and awaits dean review."
+                ),
+                notification_type=NotificationType.INCIDENT_RESOLVED,
+                related_incident=incident,
+            )
+            for dean in User.objects.filter(
+                role=UserRole.DEAN, status=AccountStatus.ACTIVE
+            )
+        ]
+    )
 
     return incident

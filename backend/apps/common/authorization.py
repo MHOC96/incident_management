@@ -1,10 +1,7 @@
-from apps.common.choices import IncidentStatus, IncidentVisibility, UserRole
+from apps.common.choices import IncidentStatus, UserRole
 
 
 def user_can_view_incident(user, incident) -> bool:
-    if incident.visibility == IncidentVisibility.PUBLIC:
-        return True
-
     if not user or not user.is_authenticated:
         return False
 

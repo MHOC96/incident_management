@@ -51,7 +51,7 @@ export default function PublicIncidentDetailPage() {
           <>
             <p className="text-sm text-text-muted">{incident.incident_number}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-[32px] font-semibold">{incident.title}</h1>
+              <h1 className="min-w-0 break-words text-[26px] font-semibold md:text-[32px]">{incident.title}</h1>
               <IncidentStatusBadge status={incident.status} />
             </div>
             <p className="mt-2 text-text-secondary">
@@ -62,7 +62,7 @@ export default function PublicIncidentDetailPage() {
             <div className="mt-8 space-y-6 border-t border-border pt-8">
               <div>
                 <h2 className="text-[18px] font-semibold mb-2">Description</h2>
-                <p className="text-text-secondary whitespace-pre-wrap">
+                <p className="break-words text-text-secondary whitespace-pre-wrap">
                   {incident.description}
                 </p>
               </div>
@@ -74,7 +74,7 @@ export default function PublicIncidentDetailPage() {
                   <img
                     src={incident.images[0].cloudinary_url}
                     alt={`Photo related to ${incident.title}`}
-                    className="max-h-96 rounded-lg border border-border object-contain"
+                    className="max-h-96 w-full rounded-lg border border-border object-contain"
                   />
                 </div>
               ) : null}

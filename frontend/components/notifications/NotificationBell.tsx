@@ -8,7 +8,11 @@ import { formatDate } from "@/lib/format";
 import { notificationService } from "@/services/notifications";
 import type { Notification } from "@/types";
 
-export function NotificationBell() {
+type NotificationBellProps = {
+  onOpen?: () => void;
+};
+
+export function NotificationBell({ onOpen }: NotificationBellProps) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -31,13 +35,12 @@ export function NotificationBell() {
     try {
       const data = await notificationService.list();
       setNotifications(data.results.slice(0, 8));
-      await refreshCount();
     } catch {
       setNotifications([]);
     } finally {
       setIsLoading(false);
     }
-  }, [refreshCount]);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -54,6 +57,8 @@ export function NotificationBell() {
   }, [isOpen, loadNotifications]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -71,7 +76,7 @@ export function NotificationBell() {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
+  }, [isOpen]);
 
   async function handleNotificationClick(notification: Notification) {
     if (!notification.is_read) {
@@ -105,7 +110,15 @@ export function NotificationBell() {
         aria-expanded={isOpen}
         aria-controls="notification-panel"
         aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={() =>
+          setIsOpen((open) => {
+            const next = !open;
+            if (next) {
+              onOpen?.();
+            }
+            return next;
+          })
+        }
         className="relative inline-flex h-11 items-center rounded-md px-2 text-sm text-text-secondary hover:bg-surface-hover hover:text-foreground"
       >
         Notifications
@@ -119,7 +132,7 @@ export function NotificationBell() {
       {isOpen ? (
         <div
           id="notification-panel"
-          className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface"
+          className="fixed inset-x-4 top-[4.75rem] z-50 max-h-[min(28rem,calc(100dvh-6rem))] overflow-hidden rounded-lg border border-border bg-surface sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[min(20rem,calc(100vw-2rem))]"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Notifications</h2>
@@ -127,7 +140,7 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="text-xs font-medium text-primary hover:text-primary-dark"
+                className="inline-flex min-h-11 items-center text-xs font-medium text-primary hover:text-primary-dark"
               >
                 Mark all read
               </button>

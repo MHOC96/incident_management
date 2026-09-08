@@ -1,18 +1,61 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DeanAssignPanel } from "@/components/dean/DeanAssignPanel";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
+import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
 import { IncidentMessages } from "@/components/incidents/IncidentMessages";
-import { IncidentPriorityBadge } from "@/components/incidents/IncidentPriorityBadge";
-import { IncidentStatusBadge } from "@/components/incidents/IncidentStatusBadge";
+import {
+  IncidentMetaGrid,
+  type IncidentMetaItem,
+} from "@/components/incidents/IncidentMetaGrid";
+import {
+  IncidentPageSkeleton,
+  IncidentPageState,
+} from "@/components/incidents/IncidentPageState";
+import { IncidentSection } from "@/components/incidents/IncidentSection";
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { formatDate, formatLocationLabel } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { getDeanStatusSummary } from "@/lib/incidentCopy";
 import { deanIncidentService } from "@/services/deanIncidents";
 import type { DeanIncident } from "@/types";
+
+function buildMetaItems(incident: DeanIncident): IncidentMetaItem[] {
+  const items: IncidentMetaItem[] = [
+    { label: "Reporter", value: incident.reporter.name },
+    { label: "Email", value: incident.reporter.email },
+    { label: "Phone", value: incident.reporter.phone || "Not provided" },
+    { label: "Submitted", value: formatDate(incident.created_at) },
+  ];
+
+  if (incident.current_assignment) {
+    items.push({
+      label: "Responsible official",
+      value: incident.current_assignment.assigned_official_name,
+    });
+    items.push({
+      label: "Assigned",
+      value: formatDate(incident.current_assignment.assigned_at),
+    });
+  }
+
+  if (incident.verified_at) {
+    items.push({ label: "Verified", value: formatDate(incident.verified_at) });
+  }
+
+  if (incident.resolved_at) {
+    items.push({ label: "Resolved", value: formatDate(incident.resolved_at) });
+  }
+
+  if (incident.closed_at) {
+    items.push({ label: "Closed", value: formatDate(incident.closed_at) });
+  }
+
+  return items;
+}
 
 function DeanIncidentDetailContent() {
   const params = useParams<{ id: string }>();
@@ -21,86 +64,93 @@ function DeanIncidentDetailContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
+    setIsLoading(true);
+    setError("");
     void (async () => {
       try {
         const data = await deanIncidentService.getById(Number(params.id));
-        setIncident(data);
+        if (!ignore) {
+          setIncident(data);
+        }
       } catch {
-        setError("We couldn't load this incident.");
+        if (!ignore) {
+          setError("We couldn't load this incident.");
+        }
       } finally {
-        setIsLoading(false);
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     })();
+    return () => {
+      ignore = true;
+    };
   }, [params.id]);
 
   if (isLoading) {
-    return <p className="py-16 text-sm text-text-secondary">Loading incident...</p>;
+    return <IncidentPageSkeleton />;
   }
 
   if (error || !incident) {
-    return <p className="py-16 text-sm text-danger">{error}</p>;
+    return (
+      <IncidentPageState
+        message={error || "This incident could not be found."}
+        tone="danger"
+      />
+    );
   }
 
+  const summary = getDeanStatusSummary(
+    incident.status,
+    incident.current_assignment?.assigned_official_name,
+  );
+
   return (
-    <section className="py-10">
-      <Link
-        href="/dean/dashboard"
-        className="text-sm font-medium text-primary hover:text-primary-dark"
-      >
-        Back to overview
-      </Link>
+    <section className="py-6 md:py-10">
+      <IncidentDetailHeader
+        backHref="/dean/dashboard"
+        backLabel="Back to overview"
+        incidentNumber={incident.incident_number}
+        title={incident.title}
+        status={incident.status}
+        priority={incident.priority}
+        location={incident.location}
+        category={incident.category}
+        summary={summary}
+      />
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-[32px] font-semibold">{incident.incident_number}</h1>
-        <IncidentStatusBadge status={incident.status} />
-        <IncidentPriorityBadge priority={incident.priority} />
-      </div>
-      <h2 className="mt-2 text-[22px] font-semibold">{incident.title}</h2>
-      <p className="mt-2 text-text-secondary">{formatLocationLabel(incident.location)}</p>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-6">
-          <div className="rounded-lg border border-border bg-surface p-6">
-            <div>
-              <h3 className="text-[18px] font-semibold mb-2">Description</h3>
-              <p className="text-text-secondary whitespace-pre-wrap">{incident.description}</p>
-            </div>
-
-            {incident.images.length > 0 ? (
-              <div className="mt-6 border-t border-border pt-6">
-                <h3 className="text-[18px] font-semibold mb-2">Evidence</h3>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={incident.images[0].cloudinary_url}
-                    alt={`Evidence for ${incident.incident_number}: ${incident.title}`}
-                  className="max-h-96 rounded-md border border-border object-contain"
-                />
-              </div>
-            ) : null}
-
+      <div className="mt-6 grid gap-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-6">
+        <div className="order-2 min-w-0 space-y-5 lg:order-1 lg:space-y-6">
+          <IncidentSection title="Description">
+            <p className="break-words whitespace-pre-wrap text-text-secondary">
+              {incident.description}
+            </p>
             <div className="mt-6 border-t border-border pt-6">
-              <h3 className="text-[18px] font-semibold mb-2">Reporter</h3>
-              <p className="text-sm text-text-secondary">{incident.reporter.name}</p>
-              <p className="text-sm text-text-secondary">{incident.reporter.email}</p>
-              <p className="text-sm text-text-secondary">{incident.reporter.phone}</p>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Evidence</h3>
+              <IncidentEvidence images={incident.images} title={incident.title} />
             </div>
+          </IncidentSection>
 
-            {incident.current_assignment ? (
-              <div className="mt-6 border-t border-border pt-6">
-                <h3 className="text-[18px] font-semibold mb-2">Current assignment</h3>
-                <p className="text-sm">{incident.current_assignment.assigned_official_name}</p>
-                <p className="text-sm text-text-muted">
-                  Assigned {formatDate(incident.current_assignment.assigned_at)}
+          <IncidentSection title="Current details">
+            <IncidentMetaGrid items={buildMetaItems(incident)} />
+            {incident.current_assignment?.comment ? (
+              <div className="mt-5 border-t border-border pt-5">
+                <h3 className="mb-2 text-sm font-semibold text-foreground">Assignment note</h3>
+                <p className="whitespace-pre-wrap text-sm text-text-secondary">
+                  {incident.current_assignment.comment}
                 </p>
               </div>
             ) : null}
-          </div>
+          </IncidentSection>
 
           <IncidentTimeline incident={incident} />
           <IncidentMessages incidentId={incident.id} allowInternal />
         </div>
 
-        <DeanAssignPanel incident={incident} onUpdated={setIncident} />
+        <aside className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-[88px]">
+          <DeanAssignPanel incident={incident} onUpdated={setIncident} />
+        </aside>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Textarea } from "@/components/ui/Textarea";
 import { formatApiError } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
 import { officialIncidentService } from "@/services/officialIncidents";
 import type { OfficialIncident } from "@/types";
 
@@ -66,7 +67,7 @@ export function OfficialProgressPanel({
 
   if (isComplete) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6">
+      <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
         <h2 className="text-[18px] font-semibold mb-2">Work complete</h2>
         <p className="text-sm text-text-secondary">
           This incident has been marked as resolved and is awaiting dean review.
@@ -78,7 +79,7 @@ export function OfficialProgressPanel({
   return (
     <div className="space-y-6">
       {canStart ? (
-        <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
           <h2 className="text-[18px] font-semibold mb-4">Start work</h2>
           <FormField label="Progress note (optional)" htmlFor="progress-comment">
             <Textarea
@@ -86,7 +87,7 @@ export function OfficialProgressPanel({
               value={progressComment}
               onChange={(event) => setProgressComment(event.target.value)}
               rows={3}
-              placeholder="Technician dispatched to inspect the location."
+              placeholder={placeholders.progressNote}
             />
           </FormField>
           <Button
@@ -102,7 +103,7 @@ export function OfficialProgressPanel({
       ) : null}
 
       {canResolve ? (
-        <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
           <h2 className="text-[18px] font-semibold mb-4">Resolution</h2>
           {!showResolve ? (
             <Button type="button" className="w-full" onClick={() => setShowResolve(true)}>
@@ -117,10 +118,10 @@ export function OfficialProgressPanel({
                   onChange={(event) => setResolveComment(event.target.value)}
                   rows={4}
                   required
-                  placeholder="Damaged classroom door has been repaired and tested."
+                  placeholder={placeholders.resolutionStatement}
                 />
               </FormField>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="button" isLoading={isSubmitting} loadingText="Confirming resolution..." onClick={handleResolve}>
                   Confirm resolution
                 </Button>

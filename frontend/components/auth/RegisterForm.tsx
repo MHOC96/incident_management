@@ -6,7 +6,11 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { formatApiError, getFieldErrors } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
+import { formatSriLankaPhoneInput, getSriLankaPhoneError } from "@/lib/phone";
 import { authService } from "@/services/auth";
 
 export function RegisterForm() {
@@ -16,8 +20,6 @@ export function RegisterForm() {
     email: "",
     phone: "",
     mc_number: "",
-    department: "",
-    year: "",
     password: "",
     password_confirm: "",
   });
@@ -33,16 +35,21 @@ export function RegisterForm() {
     event.preventDefault();
     setFormError("");
     setErrors({});
+
+    const phoneError = getSriLankaPhoneError(form.phone);
+    if (phoneError) {
+      setErrors({ phone: phoneError });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       await authService.register({
         name: form.name.trim(),
         email: form.email.trim(),
-        phone: form.phone.trim(),
+        phone: formatSriLankaPhoneInput(form.phone),
         mc_number: form.mc_number.trim(),
-        department: form.department.trim(),
-        year: form.year ? Number(form.year) : null,
         password: form.password,
         password_confirm: form.password_confirm,
       });
@@ -62,7 +69,7 @@ export function RegisterForm() {
           id="name"
           value={form.name}
           onChange={(event) => updateField("name", event.target.value)}
-          placeholder="As shown on your student identity card"
+          placeholder={placeholders.fullName}
           hasError={Boolean(errors.name)}
           required
         />
@@ -75,7 +82,7 @@ export function RegisterForm() {
           autoComplete="email"
           value={form.email}
           onChange={(event) => updateField("email", event.target.value)}
-          placeholder="name@student.usj.ac.lk"
+          placeholder={placeholders.email}
           hasError={Boolean(errors.email)}
           required
         />
@@ -92,69 +99,38 @@ export function RegisterForm() {
           id="mc_number"
           value={form.mc_number}
           onChange={(event) => updateField("mc_number", event.target.value)}
-          placeholder="MC/2024/001"
+          placeholder={placeholders.mcNumber}
           hasError={Boolean(errors.mc_number)}
           required
         />
       </FormField>
 
-      <FormField label="Contact number" htmlFor="phone" required error={errors.phone}>
-        <Input
+      <FormField
+        label="Contact number"
+        htmlFor="phone"
+        required
+        error={errors.phone}
+        hint="Enter your mobile number after +94. A leading 0 is removed automatically."
+      >
+        <PhoneInput
           id="phone"
-          type="tel"
           value={form.phone}
-          onChange={(event) => updateField("phone", event.target.value)}
-          placeholder="0712345678"
+          onChange={(value) => updateField("phone", value)}
+          placeholder={placeholders.phone}
           hasError={Boolean(errors.phone)}
           required
         />
       </FormField>
 
-      <FormField label="Department" htmlFor="department" required error={errors.department}>
-        <Input
-          id="department"
-          value={form.department}
-          onChange={(event) => updateField("department", event.target.value)}
-          placeholder="Department of Business Management"
-          hasError={Boolean(errors.department)}
-          required
-        />
-      </FormField>
-
-      <FormField
-        label="Academic year"
-        htmlFor="year"
-        required
-        error={errors.year}
-        hint="Enter your current year of study (1 to 4 for undergraduate)."
-      >
-        <Input
-          id="year"
-          type="number"
-          min={1}
-          max={10}
-          value={form.year}
-          onChange={(event) => updateField("year", event.target.value)}
-          placeholder="2"
-          hasError={Boolean(errors.year)}
-          required
-        />
-      </FormField>
-
-      <FormField
-        label="Password"
-        htmlFor="password"
-        required
-        error={errors.password}
-        hint="At least 8 characters. Use a password you do not use elsewhere."
-      >
-        <Input
+      <FormField label="Password" htmlFor="password" required error={errors.password}>
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="new-password"
           value={form.password}
           onChange={(event) => updateField("password", event.target.value)}
+          placeholder={placeholders.password}
           hasError={Boolean(errors.password)}
+          showRequirements
           required
         />
       </FormField>
@@ -165,12 +141,12 @@ export function RegisterForm() {
         required
         error={errors.password_confirm}
       >
-        <Input
+        <PasswordInput
           id="password_confirm"
-          type="password"
           autoComplete="new-password"
           value={form.password_confirm}
           onChange={(event) => updateField("password_confirm", event.target.value)}
+          placeholder={placeholders.passwordConfirm}
           hasError={Boolean(errors.password_confirm)}
           required
         />

@@ -6,6 +6,7 @@ import { FormField } from "@/components/ui/FormField";
 import { Textarea } from "@/components/ui/Textarea";
 import { formatRoleLabel } from "@/lib/incidentRoutes";
 import { formatApiError } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
 import { formatDate } from "@/lib/format";
 import { messageService } from "@/services/messages";
 import type { IncidentMessage } from "@/types";
@@ -28,21 +29,31 @@ export function IncidentMessages({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function loadMessages() {
-    const response = await messageService.list(incidentId);
-    setMessages(response.results);
-  }
-
   useEffect(() => {
+    let ignore = false;
+    setIsLoading(true);
+    setError("");
+
     void (async () => {
       try {
-        await loadMessages();
+        const response = await messageService.list(incidentId);
+        if (!ignore) {
+          setMessages(response.results);
+        }
       } catch {
-        setError("We couldn't load messages.");
+        if (!ignore) {
+          setError("We couldn't load messages.");
+        }
       } finally {
-        setIsLoading(false);
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     })();
+
+    return () => {
+      ignore = true;
+    };
   }, [incidentId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -50,10 +61,10 @@ export function IncidentMessages({
     setError("");
     setIsSubmitting(true);
     try {
-      await messageService.create(incidentId, content.trim(), isInternal);
+      const created = await messageService.create(incidentId, content.trim(), isInternal);
       setContent("");
       setIsInternal(false);
-      await loadMessages();
+      setMessages((items) => [...items, created]);
     } catch (submitError) {
       setError(formatApiError(submitError, "We couldn't send your message."));
     } finally {
@@ -62,14 +73,16 @@ export function IncidentMessages({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-6">
+    <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
       <h2 className="text-[18px] font-semibold mb-4">Communication</h2>
 
       {isLoading ? (
         <p className="text-sm text-text-secondary">Loading messages...</p>
       ) : messages.length === 0 ? (
         <p className="mb-4 text-sm text-text-secondary">
-          No messages yet. Send an update about this incident below.
+          {readOnly
+            ? "No messages on this report. Staff will post updates here when needed."
+            : "No messages yet. If you have extra details for staff, send a note below."}
         </p>
       ) : (
         <div className="mb-6 space-y-4">
@@ -87,7 +100,7 @@ export function IncidentMessages({
                 ) : null}
                 <span className="text-text-muted">{formatDate(message.created_at)}</span>
               </div>
-              <p className="mt-2 text-sm text-text-secondary whitespace-pre-wrap">
+              <p className="mt-2 break-words text-sm text-text-secondary whitespace-pre-wrap">
                 {message.content}
               </p>
             </div>
@@ -104,11 +117,12 @@ export function IncidentMessages({
               onChange={(event) => setContent(event.target.value)}
               rows={4}
               required
-              placeholder="Write a message to participants on this incident."
+              placeholder={placeholders.message}
+              className="resize-none"
             />
           </FormField>
           {allowInternal ? (
-            <label htmlFor="message-internal" className="mb-4 flex items-center gap-2 text-sm text-text-secondary">
+            <label htmlFor="message-internal" className="mb-4 flex items-start gap-2 text-sm text-text-secondary">
               <input
                 id="message-internal"
                 type="checkbox"
@@ -120,7 +134,7 @@ export function IncidentMessages({
             </label>
           ) : null}
           {error ? <p className="mb-3 text-sm text-danger">{error}</p> : null}
-          <Button type="submit" isLoading={isSubmitting} loadingText="Sending message...">
+          <Button type="submit" className="w-full sm:w-auto" isLoading={isSubmitting} loadingText="Sending message...">
             Send message
           </Button>
         </form>

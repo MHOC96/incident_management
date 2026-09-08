@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { getPositionLabel, getPriorityLabel } from "@/lib/format";
 import { formatApiError } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
 import { deanIncidentService, responsiblePartyService } from "@/services/deanIncidents";
 import { officialService } from "@/services/officials";
 import type {
@@ -134,7 +135,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
   return (
     <>
       <div className="space-y-6">
-        <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
           <h2 className="text-[18px] font-semibold mb-4">Priority</h2>
           <FormField label="Official priority" htmlFor="priority">
             <Select
@@ -162,7 +163,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
         </div>
 
         {canAssign ? (
-          <div className="rounded-lg border border-border bg-surface p-6">
+          <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
             <h2 className="text-[18px] font-semibold mb-4">Assignment</h2>
             <FormField label="Assigned official" htmlFor="official" required>
               <Select
@@ -199,7 +200,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
                 value={comment}
                 onChange={(event) => setComment(event.target.value)}
                 rows={3}
-                placeholder="Instructions or context for the assigned official."
+                placeholder={placeholders.assignmentComment}
               />
             </FormField>
             <Button
@@ -216,7 +217,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
         ) : null}
 
         {canClose ? (
-          <div className="rounded-lg border border-border bg-surface p-6">
+          <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
             <h2 className="text-[18px] font-semibold mb-4">Close incident</h2>
             <p className="mb-4 text-sm text-text-secondary">
               Review the official resolution before closing this incident.
@@ -227,7 +228,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
                 value={closeComment}
                 onChange={(event) => setCloseComment(event.target.value)}
                 rows={3}
-                placeholder="Optional note recorded at closure."
+                placeholder={placeholders.closureNote}
               />
             </FormField>
             <Button
@@ -243,7 +244,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
         ) : null}
 
         {canReopen ? (
-          <div className="rounded-lg border border-border bg-surface p-6">
+          <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
             <h2 className="text-[18px] font-semibold mb-4">Return for additional work</h2>
             <FormField label="Reason (optional)" htmlFor="reopen-comment">
               <Textarea
@@ -251,7 +252,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
                 value={reopenComment}
                 onChange={(event) => setReopenComment(event.target.value)}
                 rows={3}
-                placeholder="Explain why additional work is needed."
+                placeholder={placeholders.reopenReason}
               />
             </FormField>
             <Button

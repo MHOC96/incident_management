@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { formatApiError, getFieldErrors } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
 import { getDashboardRoute } from "@/lib/routes";
 
 export function LoginForm() {
@@ -46,20 +48,20 @@ export function LoginForm() {
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="name@student.usj.ac.lk"
+          placeholder={placeholders.email}
           hasError={Boolean(errors.email)}
           required
         />
       </FormField>
 
       <FormField label="Password" htmlFor="password" required error={errors.password}>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          placeholder={placeholders.password}
           hasError={Boolean(errors.password)}
           required
         />

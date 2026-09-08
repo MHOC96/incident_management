@@ -1,16 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminReviewActions } from "@/components/admin/AdminReviewActions";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
+import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
 import { IncidentMessages } from "@/components/incidents/IncidentMessages";
-import { IncidentPriorityBadge } from "@/components/incidents/IncidentPriorityBadge";
-import { IncidentStatusBadge } from "@/components/incidents/IncidentStatusBadge";
+import { IncidentMetaGrid } from "@/components/incidents/IncidentMetaGrid";
+import { IncidentPageSkeleton, IncidentPageState } from "@/components/incidents/IncidentPageState";
+import { IncidentSection } from "@/components/incidents/IncidentSection";
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { formatDate, formatLocationLabel } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { adminIncidentService } from "@/services/adminIncidents";
 import type { AdminIncidentReview } from "@/types";
 
@@ -21,105 +23,85 @@ function AdminIncidentReviewContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
+    setIsLoading(true);
+    setError("");
     void (async () => {
       try {
         const data = await adminIncidentService.getForReview(Number(params.id));
-        setIncident(data);
+        if (!ignore) {
+          setIncident(data);
+        }
       } catch {
-        setError("We couldn't load this incident for review.");
+        if (!ignore) {
+          setError("We couldn't load this incident for review.");
+        }
       } finally {
-        setIsLoading(false);
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     })();
+    return () => {
+      ignore = true;
+    };
   }, [params.id]);
 
   if (isLoading) {
-    return <p className="py-16 text-sm text-text-secondary">Loading incident...</p>;
+    return <IncidentPageSkeleton />;
   }
 
   if (error || !incident) {
-    return <p className="py-16 text-sm text-danger">{error}</p>;
+    return (
+      <IncidentPageState
+        message={error || "This incident could not be found."}
+        tone="danger"
+      />
+    );
   }
 
   const isReviewComplete =
     incident.status !== "SUBMITTED" && incident.status !== "UNDER_REVIEW";
 
   return (
-    <section className="py-10">
-      <div className="mb-6">
-        <Link
-          href="/admin/dashboard"
-          className="text-sm font-medium text-primary hover:text-primary-dark"
-        >
-          Back to review queue
-        </Link>
-      </div>
+    <section className="py-6 md:py-10">
+      <IncidentDetailHeader
+        backHref="/admin/dashboard"
+        backLabel="Back to review queue"
+        incidentNumber={incident.incident_number}
+        title={incident.title}
+        status={incident.status}
+        priority={incident.priority}
+        location={incident.location}
+        category={incident.category}
+      />
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-[32px] font-semibold">Incident review</h1>
-        <IncidentStatusBadge status={incident.status} />
-        <IncidentPriorityBadge priority={incident.priority} />
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-8">
-          <div className="rounded-lg border border-border bg-surface p-6">
-            <p className="text-sm text-text-muted">{incident.incident_number}</p>
-            <h2 className="mt-2 text-[22px] font-semibold">{incident.title}</h2>
-            <p className="mt-2 text-text-secondary">
-              {formatLocationLabel(incident.location)}
+      <div className="mt-6 grid gap-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-6">
+        <div className="order-2 min-w-0 space-y-5 lg:order-1 lg:space-y-6">
+          <IncidentSection title="Description">
+            <p className="break-words whitespace-pre-wrap text-text-secondary">
+              {incident.description}
             </p>
-            <p className="mt-1 text-sm text-text-secondary">{incident.category.name}</p>
-
             <div className="mt-6 border-t border-border pt-6">
-              <h3 className="text-[18px] font-semibold mb-2">Description</h3>
-              <p className="text-text-secondary whitespace-pre-wrap">{incident.description}</p>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Evidence</h3>
+              <IncidentEvidence images={incident.images} title={incident.title} />
             </div>
+          </IncidentSection>
 
-            {incident.images.length > 0 ? (
-              <div className="mt-6 border-t border-border pt-6">
-                <h3 className="text-[18px] font-semibold mb-2">Evidence</h3>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={incident.images[0].cloudinary_url}
-                    alt={`Evidence for ${incident.incident_number}: ${incident.title}`}
-                  className="max-h-96 rounded-md border border-border object-contain"
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <div className="rounded-lg border border-border bg-surface p-6">
-            <h3 className="text-[18px] font-semibold mb-4">Reporter information</h3>
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-text-muted">Name</dt>
-                <dd className="font-medium">{incident.reporter.name}</dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">Email</dt>
-                <dd className="font-medium">{incident.reporter.email}</dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">Phone</dt>
-                <dd className="font-medium">{incident.reporter.phone}</dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">MC number</dt>
-                <dd className="font-medium">{incident.reporter.mc_number}</dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">Department</dt>
-                <dd className="font-medium">{incident.reporter.department}</dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">Submitted</dt>
-                <dd className="font-medium">{formatDate(incident.created_at)}</dd>
-              </div>
-            </dl>
-          </div>
+          <IncidentSection title="Reporter information">
+            <IncidentMetaGrid
+              items={[
+                { label: "Name", value: incident.reporter.name },
+                { label: "Email", value: incident.reporter.email },
+                { label: "Phone", value: incident.reporter.phone },
+                { label: "MC number", value: incident.reporter.mc_number },
+                { label: "Submitted", value: formatDate(incident.created_at) },
+              ]}
+            />
+          </IncidentSection>
 
           <IncidentTimeline incident={incident} />
+
           <IncidentMessages
             incidentId={incident.id}
             allowInternal
@@ -127,7 +109,9 @@ function AdminIncidentReviewContent() {
           />
         </div>
 
-        <AdminReviewActions incident={incident} onUpdated={setIncident} />
+        <aside className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-[88px]">
+          <AdminReviewActions incident={incident} onUpdated={setIncident} />
+        </aside>
       </div>
     </section>
   );

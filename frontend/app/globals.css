@@ -39,20 +39,87 @@
   --font-serif: var(--font-source-serif);
 }
 
-body {
-  background: var(--color-background);
+@layer base {
+  html {
+    overflow-x: clip;
+    scroll-padding-top: 72px;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: clip;
+  }
+
+  a {
+    color: var(--color-primary);
+  }
+
+  a:hover {
+    color: var(--color-primary-dark);
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.phone-input {
+  display: flex;
+  height: 2.75rem;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 0 0.75rem;
+}
+
+.phone-input:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.phone-input--error {
+  border-color: var(--color-danger);
+}
+
+.phone-input__flag {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.phone-input__prefix {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.phone-input__field {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   color: var(--color-text);
-  font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
 }
 
-a {
-  color: var(--color-primary);
+.phone-input__field::placeholder {
+  color: var(--color-text-muted);
 }
 
-a:hover {
-  color: var(--color-primary-dark);
+.phone-input__field:focus {
+  outline: none;
 }
 
 :focus-visible {

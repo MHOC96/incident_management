@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PublicIncidentList } from "@/components/incidents/PublicIncidentList";
+import { LinkButton } from "@/components/ui/LinkButton";
 
 export default function HomePage() {
   return (
@@ -9,25 +9,19 @@ export default function HomePage() {
         <p className="font-serif text-lg text-text-secondary mb-3">
           University of Sri Jayewardenepura
         </p>
-        <h1 className="text-[32px] font-semibold leading-tight text-foreground mb-4 max-w-2xl">
+        <h1 className="mb-4 max-w-2xl text-[26px] font-semibold leading-tight text-foreground md:text-[32px]">
           Incident Reporting and Resolution
         </h1>
         <p className="text-text-secondary max-w-xl mb-8">
           Report university-related issues and follow their progress through official review and resolution.
         </p>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/incidents"
-            className="inline-flex h-11 items-center rounded-md bg-primary px-5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
-          >
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <LinkButton href="/incidents" className="w-full sm:w-auto">
             View public incidents
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-11 items-center rounded-md border border-border bg-surface px-5 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover"
-          >
+          </LinkButton>
+          <LinkButton href="/login" variant="secondary" className="w-full sm:w-auto">
             Sign in to report
-          </Link>
+          </LinkButton>
         </div>
       </section>
 

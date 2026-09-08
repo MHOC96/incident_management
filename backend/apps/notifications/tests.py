@@ -96,6 +96,39 @@ class NotificationFlowTests(TestCase):
             ).exists()
         )
 
+    def test_internal_message_does_not_notify_student(self):
+        self.incident.status = IncidentStatus.FORWARDED_TO_DEAN
+        self.incident.save(update_fields=["status", "updated_at"])
+        assign_incident(
+            self.incident,
+            assigned_official=self.official,
+            assigned_by=self.dean,
+            comment="Please inspect.",
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            f"/api/incidents/{self.incident.id}/messages/",
+            {"content": "Staff-only assessment of the damage.", "is_internal": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.json()["is_internal"])
+        self.assertFalse(
+            Notification.objects.filter(
+                user=self.student,
+                notification_type=NotificationType.NEW_MESSAGE,
+                related_incident=self.incident,
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                user=self.official,
+                notification_type=NotificationType.NEW_MESSAGE,
+                related_incident=self.incident,
+            ).exists()
+        )
+
     def test_mark_notification_read(self):
         notification = Notification.objects.create(
             user=self.student,

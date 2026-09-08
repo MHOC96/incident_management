@@ -18,18 +18,7 @@ CATEGORIES = [
     ("Other", "Other university-related incidents"),
 ]
 
-LOCATIONS = [
-    ("Management Faculty", "Main Building", "Ground Floor"),
-    ("Management Faculty", "Block A", "Ground Floor"),
-    ("Management Faculty", "Block A", "First Floor"),
-    ("Management Faculty", "Block B", "Ground Floor"),
-    ("Management Faculty", "Block B", "Second Floor"),
-    ("Management Faculty", "Lecture Theatre", "Ground Floor"),
-    ("Management Faculty", "Computer Lab", "First Floor"),
-    ("Management Faculty", "Common Area", "Ground Floor"),
-    ("Management Faculty", "Restroom", "Ground Floor"),
-    ("Management Faculty", "Parking Area", ""),
-]
+LOCATIONS = []
 
 FACULTY_NAME = "Faculty of Management Studies and Commerce"
 

@@ -65,7 +65,7 @@ export function ImageUpload({ file, onChange, error }: ImageUploadProps) {
               alt="Incident evidence preview"
               className="max-h-64 w-full rounded-md border border-border object-contain"
             />
-            <p className="text-sm text-text-secondary">{file?.name}</p>
+            <p className="break-all text-sm text-text-secondary">{file?.name}</p>
             <Button
               type="button"
               variant="secondary"
@@ -75,7 +75,7 @@ export function ImageUpload({ file, onChange, error }: ImageUploadProps) {
             </Button>
           </div>
         ) : (
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 py-8 text-center">
+          <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 py-6 text-center md:min-h-40">
             <span className="text-sm font-medium text-foreground">Choose a photo</span>
             <span className="text-sm text-text-muted">JPEG, PNG, or WebP up to 5 MB</span>
             <input

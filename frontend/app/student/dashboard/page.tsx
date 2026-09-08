@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { IncidentTable } from "@/components/dashboard/IncidentTable";
 import { StatsStrip } from "@/components/dashboard/StatsStrip";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { LinkButton } from "@/components/ui/LinkButton";
 import { useAuth } from "@/hooks/useAuth";
 import { incidentService } from "@/services/incidents";
 import type { IncidentDetail, IncidentStatus } from "@/types";
@@ -56,8 +56,8 @@ function StudentDashboardContent() {
 
   return (
     <PageContainer width="app">
-      <section className="py-10">
-        <h1 className="text-[32px] font-semibold mb-2">
+      <section className="py-8 md:py-10">
+        <h1 className="mb-2 text-[26px] font-semibold md:text-[32px]">
           Good morning, {user?.name.split(" ")[0]}
         </h1>
         <p className="text-text-secondary mb-8">Your reported incidents</p>
@@ -81,27 +81,21 @@ function StudentDashboardContent() {
             />
 
             {incidents.length === 0 ? (
-              <div className="border border-border bg-surface px-6 py-10">
+              <div className="border border-border bg-surface px-4 py-8 md:px-6 md:py-10">
                 <p className="text-text-secondary mb-4">
                   You haven&apos;t reported any incidents yet.
                 </p>
-                <Link
-                  href="/student/incidents/new"
-                  className="inline-flex h-11 items-center rounded-md bg-primary px-5 text-sm font-medium text-white hover:bg-primary-dark"
-                >
+                <LinkButton href="/student/incidents/new" className="w-full sm:w-auto">
                   Report new incident
-                </Link>
+                </LinkButton>
               </div>
             ) : (
               <div className="border border-border bg-surface">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+                <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
                   <h2 className="text-[18px] font-semibold">Recent reports</h2>
-                  <Link
-                    href="/student/incidents/new"
-                    className="inline-flex h-11 items-center rounded-md bg-primary px-5 text-sm font-medium text-white hover:bg-primary-dark"
-                  >
+                  <LinkButton href="/student/incidents/new" className="w-full sm:w-auto">
                     Report new incident
-                  </Link>
+                  </LinkButton>
                 </div>
                 <IncidentTable
                   rows={incidents.map((incident) => ({

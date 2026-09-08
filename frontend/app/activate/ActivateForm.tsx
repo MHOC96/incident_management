@@ -5,9 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { formatApiError } from "@/lib/errors";
+import { placeholders } from "@/lib/placeholders";
 import { officialService } from "@/services/officials";
 
 export function ActivateForm() {
@@ -41,7 +42,7 @@ export function ActivateForm() {
 
   return (
     <PageContainer width="public">
-      <section className="mx-auto max-w-md py-16">
+      <section className="mx-auto max-w-md py-10 md:py-16">
         <p className="font-serif text-sm text-text-secondary mb-2">
           University of Sri Jayewardenepura
         </p>
@@ -64,27 +65,24 @@ export function ActivateForm() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} noValidate>
-            <FormField
-              label="Password"
-              htmlFor="password"
-              required
-              hint="At least 8 characters."
-            >
-              <Input
+            <FormField label="Password" htmlFor="password" required>
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                placeholder={placeholders.password}
+                showRequirements
                 required
               />
             </FormField>
             <FormField label="Confirm password" htmlFor="password_confirm" required>
-              <Input
+              <PasswordInput
                 id="password_confirm"
-                type="password"
+                autoComplete="new-password"
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
+                placeholder={placeholders.passwordConfirm}
                 required
               />
             </FormField>

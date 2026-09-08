@@ -5,7 +5,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from apps.accounts.auth import EmailTokenObtainPairSerializer
+from apps.accounts.auth import ActiveAccountTokenRefreshSerializer, EmailTokenObtainPairSerializer
 from apps.accounts.serializers import (
     OfficialAccountSerializer,
     OfficialActivateSerializer,
@@ -78,7 +78,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 
 class CustomTokenRefreshView(TokenRefreshView):
-    pass
+    serializer_class = ActiveAccountTokenRefreshSerializer
 
 
 class OfficialAccountViewSet(viewsets.ModelViewSet):

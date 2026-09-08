@@ -1,7 +1,9 @@
 from rest_framework import permissions, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.throttling import UserRateThrottle
 
-from apps.common.authorization import user_can_message_on_incident
+from apps.common.authorization import user_can_message_on_incident, user_can_view_incident
+from apps.common.choices import UserRole
 from apps.common.permissions import IsActiveUser
 from apps.communications.models import Message
 from apps.communications.serializers import MessageSerializer
@@ -20,28 +22,47 @@ class IncidentMessageViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "head", "options"]
 
     def get_incident(self):
-        return Incident.objects.get(pk=self.kwargs["incident_pk"])
+        if hasattr(self, "_incident"):
+            return self._incident
+
+        try:
+            incident = Incident.objects.select_related("reporter").get(
+                pk=self.kwargs["incident_pk"]
+            )
+        except Incident.DoesNotExist as exc:
+            raise NotFound() from exc
+
+        if not user_can_view_incident(self.request.user, incident):
+            raise NotFound()
+
+        self._incident = incident
+        return incident
 
     def get_queryset(self):
         incident = self.get_incident()
-        user = self.request.user
         queryset = Message.objects.filter(incident=incident).select_related("sender")
-
-        if not user_can_message_on_incident(user, incident):
-            return Message.objects.none()
-
-        if user.is_student:
+        if self.request.user.is_student:
             return queryset.filter(is_internal=False)
-
         return queryset
 
     def perform_create(self, serializer):
         incident = self.get_incident()
-        if not user_can_message_on_incident(self.request.user, incident):
+        user = self.request.user
+        if not user_can_message_on_incident(user, incident):
             raise permissions.PermissionDenied("Not authorized to message on this incident.")
-        message = serializer.save(incident=incident, sender=self.request.user)
+
+        is_internal = serializer.validated_data.get("is_internal", False)
+        if user.role not in {UserRole.ADMIN, UserRole.DEAN}:
+            is_internal = False
+
+        message = serializer.save(
+            incident=incident,
+            sender=user,
+            is_internal=is_internal,
+        )
         notify_message_participants(
             incident=incident,
-            sender=self.request.user,
+            sender=user,
             content=message.content,
+            is_internal=is_internal,
         )

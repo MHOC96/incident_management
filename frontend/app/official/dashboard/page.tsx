@@ -33,8 +33,8 @@ function OfficialDashboardContent() {
 
   return (
     <PageContainer width="app">
-      <section className="py-10">
-        <h1 className="text-[32px] font-semibold mb-2">Assigned incidents</h1>
+      <section className="py-8 md:py-10">
+        <h1 className="mb-2 text-[26px] font-semibold md:text-[32px]">Assigned incidents</h1>
         <p className="text-text-secondary mb-8">Your official workspace</p>
 
         {isLoading ? (
@@ -56,7 +56,7 @@ function OfficialDashboardContent() {
             />
 
             <div className="border border-border bg-surface">
-              <div className="border-b border-border px-6 py-4">
+              <div className="border-b border-border px-4 py-4 md:px-6">
                 <h2 className="text-[18px] font-semibold">Assigned to me</h2>
               </div>
               <IncidentTable

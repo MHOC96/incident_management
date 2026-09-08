@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 export default function RegisterPage() {
   return (
     <PageContainer width="public">
-      <section className="mx-auto max-w-md py-16">
+      <section className="mx-auto max-w-md py-10 md:py-16">
         <p className="font-serif text-sm text-text-secondary mb-2">
           University of Sri Jayewardenepura
         </p>

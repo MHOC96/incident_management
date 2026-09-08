@@ -21,7 +21,6 @@ class Command(BaseCommand):
             help="Only ADMIN or DEAN can be provisioned with this command.",
         )
         parser.add_argument("--phone", default="")
-        parser.add_argument("--department", default="Faculty of Management Studies and Commerce")
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -41,7 +40,6 @@ class Command(BaseCommand):
             phone=options.get("phone", ""),
             role=role,
             status=AccountStatus.ACTIVE,
-            department=options.get("department", ""),
         )
 
         self.stdout.write(

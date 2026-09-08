@@ -33,8 +33,6 @@ export type User = {
   role: UserRole;
   position: OfficialPosition | null;
   status: AccountStatus;
-  department: string;
-  year: number | null;
   created_at: string;
 };
 
@@ -43,8 +41,6 @@ export type StudentRegistrationPayload = {
   email: string;
   phone: string;
   mc_number: string;
-  department: string;
-  year: number | null;
   password: string;
   password_confirm: string;
 };
@@ -119,8 +115,6 @@ export type ReporterAdmin = {
   email: string;
   phone: string;
   mc_number: string;
-  department: string;
-  year: number | null;
 };
 
 export type AdminIncidentReview = Omit<IncidentDetail, "reporter" | "reporter_name"> & {
@@ -162,6 +156,7 @@ export type DeanIncident = AdminIncidentReview & {
 export type DeanStats = {
   total_incidents: number;
   awaiting_action: number;
+  assigned: number;
   in_progress: number;
   resolved_awaiting_closure: number;
   closed: number;
@@ -173,7 +168,6 @@ export type OfficialAccount = {
   email: string;
   phone: string;
   position: OfficialPosition;
-  department: string;
   status: AccountStatus;
   created_at: string;
 };
@@ -183,7 +177,6 @@ export type OfficialCreatePayload = {
   email: string;
   phone: string;
   position: OfficialPosition;
-  department: string;
 };
 
 export type IncidentAssignPayload = {
@@ -243,6 +236,6 @@ export type IncidentCreatePayload = {
   title: string;
   description: string;
   category: number;
-  location: number;
+  location_name: string;
   visibility: IncidentVisibility;
 };

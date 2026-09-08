@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PublicIncidentRow } from "@/components/incidents/PublicIncidentRow";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { incidentService, referenceService } from "@/services/incidents";
+import { placeholders } from "@/lib/placeholders";
 import type { Category, Location, PublicIncident } from "@/types";
 
 type PublicIncidentListProps = {
@@ -14,7 +15,6 @@ type PublicIncidentListProps = {
 export function PublicIncidentList({ limit }: PublicIncidentListProps) {
   const [incidents, setIncidents] = useState<PublicIncident[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [locationId, setLocationId] = useState("");
@@ -24,21 +24,35 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
   useEffect(() => {
     void (async () => {
       try {
-        const [response, categoryData, locationData] = await Promise.all([
+        if (limit) {
+          const response = await incidentService.listPublic();
+          setIncidents(response.results);
+          return;
+        }
+
+        const [response, categoryData] = await Promise.all([
           incidentService.listPublic(),
           referenceService.listCategories(),
-          referenceService.listLocations(),
         ]);
         setIncidents(response.results);
         setCategories(categoryData);
-        setLocations(locationData);
       } catch {
         setError("The public incident register could not be loaded. Please refresh the page or try again later.");
       } finally {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [limit]);
+
+  const locations = useMemo(() => {
+    const unique = new Map<number, Location>();
+    incidents.forEach((incident) => {
+      unique.set(incident.location.id, incident.location);
+    });
+    return Array.from(unique.values()).sort((left, right) =>
+      left.name.localeCompare(right.name),
+    );
+  }, [incidents]);
 
   const filtered = incidents.filter((incident) => {
     const search = query.trim().toLowerCase();
@@ -79,7 +93,7 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="INC-2026-00142 or broken door"
+            placeholder={placeholders.searchIncidents}
             aria-label="Search by incident ID or title"
           />
           <Select

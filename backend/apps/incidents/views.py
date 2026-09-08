@@ -1,3 +1,5 @@
+from django.db import transaction
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -22,7 +24,7 @@ from apps.common.authorization import (
     user_can_start_progress_incident,
     user_can_verify_incident,
 )
-from apps.common.choices import IncidentStatus, IncidentVisibility, NotificationType, UserRole
+from apps.common.choices import IncidentStatus, NotificationType, UserRole
 from apps.common.permissions import IsActiveUser, IsAdmin, IsDean, IsOfficial, IsStaffRole, IsStudent
 from apps.communications.models import Message
 from apps.incidents.cloudinary_service import upload_incident_image
@@ -53,6 +55,10 @@ from apps.incidents.services import (
     admin_verify_and_forward,
     is_valid_status_transition,
     transition_incident,
+)
+from apps.incidents.querysets import (
+    optimized_incident_queryset,
+    public_incident_queryset,
 )
 from apps.incidents.utils import generate_incident_number
 from apps.notifications.models import Notification
@@ -95,26 +101,20 @@ class IncidentViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not user.is_authenticated:
-            return Incident.objects.filter(visibility=IncidentVisibility.PUBLIC)
+            return public_incident_queryset()
+
+        queryset = optimized_incident_queryset()
 
         if user.role in {UserRole.ADMIN, UserRole.DEAN}:
-            return Incident.objects.select_related(
-                "category",
-                "location",
-                "reporter",
-            ).prefetch_related("images")
+            return queryset
 
         if user.role == UserRole.OFFICIAL:
-            return Incident.objects.filter(
+            return queryset.filter(
                 assignments__assigned_official=user,
                 assignments__is_current=True,
-            ).select_related("category", "location", "reporter").prefetch_related("images").distinct()
+            ).distinct()
 
-        return Incident.objects.filter(reporter=user).select_related(
-            "category",
-            "location",
-            "reporter",
-        ).prefetch_related("images")
+        return queryset.filter(reporter=user)
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -135,7 +135,13 @@ class IncidentViewSet(viewsets.ModelViewSet):
             return [IsStudent()]
         if self.action in {"pending_review", "review_stats"}:
             return [IsAdmin()]
-        if self.action in {"dean_stats", "awaiting_action", "resolved_awaiting_closure", "reopen"}:
+        if self.action in {
+            "dean_stats",
+            "awaiting_action",
+            "currently_underway",
+            "resolved_awaiting_closure",
+            "reopen",
+        }:
             return [IsDean()]
         if self.action in {"assigned", "official_stats"}:
             return [IsOfficial()]
@@ -172,10 +178,11 @@ class IncidentViewSet(viewsets.ModelViewSet):
         return Response(IncidentDeanDetailSerializer(incident).data)
 
     def perform_create(self, serializer):
-        serializer.save(
-            incident_number=generate_incident_number(),
-            status=IncidentStatus.SUBMITTED,
-        )
+        with transaction.atomic():
+            serializer.save(
+                incident_number=generate_incident_number(),
+                status=IncidentStatus.SUBMITTED,
+            )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -214,12 +221,16 @@ class IncidentViewSet(viewsets.ModelViewSet):
     def official_stats(self, request):
         queryset = self.get_queryset()
         return Response(
-            {
-                "assigned": queryset.filter(status=IncidentStatus.ASSIGNED).count(),
-                "in_progress": queryset.filter(status=IncidentStatus.IN_PROGRESS).count(),
-                "resolved": queryset.filter(status=IncidentStatus.RESOLVED).count(),
-                "total_assigned": queryset.count(),
-            }
+            queryset.aggregate(
+                assigned=Count("id", distinct=True, filter=Q(status=IncidentStatus.ASSIGNED)),
+                in_progress=Count(
+                    "id",
+                    distinct=True,
+                    filter=Q(status=IncidentStatus.IN_PROGRESS),
+                ),
+                resolved=Count("id", distinct=True, filter=Q(status=IncidentStatus.RESOLVED)),
+                total_assigned=Count("id", distinct=True),
+            )
         )
 
     @action(detail=False, methods=["get"], url_path="assigned")
@@ -243,22 +254,20 @@ class IncidentViewSet(viewsets.ModelViewSet):
     def dean_stats(self, request):
         queryset = self.get_queryset()
         return Response(
-            {
-                "total_incidents": queryset.count(),
-                "awaiting_action": queryset.filter(
-                    status=IncidentStatus.FORWARDED_TO_DEAN
-                ).count(),
-                "in_progress": queryset.filter(
-                    status__in={
-                        IncidentStatus.ASSIGNED,
-                        IncidentStatus.IN_PROGRESS,
-                    }
-                ).count(),
-                "resolved_awaiting_closure": queryset.filter(
-                    status=IncidentStatus.RESOLVED
-                ).count(),
-                "closed": queryset.filter(status=IncidentStatus.CLOSED).count(),
-            }
+            queryset.aggregate(
+                total_incidents=Count("id"),
+                awaiting_action=Count(
+                    "id",
+                    filter=Q(status=IncidentStatus.FORWARDED_TO_DEAN),
+                ),
+                assigned=Count("id", filter=Q(status=IncidentStatus.ASSIGNED)),
+                in_progress=Count("id", filter=Q(status=IncidentStatus.IN_PROGRESS)),
+                resolved_awaiting_closure=Count(
+                    "id",
+                    filter=Q(status=IncidentStatus.RESOLVED),
+                ),
+                closed=Count("id", filter=Q(status=IncidentStatus.CLOSED)),
+            )
         )
 
     @action(detail=False, methods=["get"], url_path="awaiting-action")
@@ -267,6 +276,22 @@ class IncidentViewSet(viewsets.ModelViewSet):
             self.get_queryset()
             .filter(status=IncidentStatus.FORWARDED_TO_DEAN)
             .order_by("-priority", "created_at")
+        )
+        page = self.paginate_queryset(queryset)
+        serializer = IncidentDeanDetailSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="currently-underway")
+    def currently_underway(self, request):
+        queryset = (
+            self.get_queryset()
+            .filter(
+                status__in={
+                    IncidentStatus.ASSIGNED,
+                    IncidentStatus.IN_PROGRESS,
+                }
+            )
+            .order_by("-priority", "-updated_at")
         )
         page = self.paginate_queryset(queryset)
         serializer = IncidentDeanDetailSerializer(page, many=True)
@@ -298,16 +323,18 @@ class IncidentViewSet(viewsets.ModelViewSet):
     def review_stats(self, request):
         queryset = self.get_queryset()
         return Response(
-            {
-                "pending_verification": queryset.filter(
-                    status__in=PENDING_REVIEW_STATUSES
-                ).count(),
-                "verified": queryset.filter(status=IncidentStatus.VERIFIED).count(),
-                "forwarded_to_dean": queryset.filter(
-                    status=IncidentStatus.FORWARDED_TO_DEAN
-                ).count(),
-                "rejected": queryset.filter(status=IncidentStatus.REJECTED).count(),
-            }
+            queryset.aggregate(
+                pending_verification=Count(
+                    "id",
+                    filter=Q(status__in=PENDING_REVIEW_STATUSES),
+                ),
+                verified=Count("id", filter=Q(status=IncidentStatus.VERIFIED)),
+                forwarded_to_dean=Count(
+                    "id",
+                    filter=Q(status=IncidentStatus.FORWARDED_TO_DEAN),
+                ),
+                rejected=Count("id", filter=Q(status=IncidentStatus.REJECTED)),
+            )
         )
 
     @action(
@@ -358,31 +385,15 @@ class IncidentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="public")
     def list_public(self, request):
-        queryset = Incident.objects.filter(
-            visibility=IncidentVisibility.PUBLIC,
-            status__in=[
-                IncidentStatus.VERIFIED,
-                IncidentStatus.FORWARDED_TO_DEAN,
-                IncidentStatus.ASSIGNED,
-                IncidentStatus.IN_PROGRESS,
-                IncidentStatus.RESOLVED,
-                IncidentStatus.CLOSED,
-            ],
-        ).select_related("category", "location").prefetch_related("images")
+        queryset = public_incident_queryset()
         page = self.paginate_queryset(queryset)
         serializer = PublicIncidentSerializer(page, many=True)
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=["get"], url_path="public")
     def retrieve_public(self, request, pk=None):
-        try:
-            incident = Incident.objects.select_related(
-                "category", "location"
-            ).prefetch_related("images").get(pk=pk)
-        except Incident.DoesNotExist:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        if incident.visibility != IncidentVisibility.PUBLIC:
+        incident = public_incident_queryset().filter(pk=pk).first()
+        if not incident:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = PublicIncidentSerializer(incident)

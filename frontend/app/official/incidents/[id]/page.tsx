@@ -21,16 +21,28 @@ function OfficialIncidentDetailContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
+    setIsLoading(true);
+    setError("");
     void (async () => {
       try {
         const data = await officialIncidentService.getById(Number(params.id));
-        setIncident(data);
+        if (!ignore) {
+          setIncident(data);
+        }
       } catch {
-        setError("We couldn't load this assigned incident.");
+        if (!ignore) {
+          setError("We couldn't load this assigned incident.");
+        }
       } finally {
-        setIsLoading(false);
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     })();
+    return () => {
+      ignore = true;
+    };
   }, [params.id]);
 
   if (isLoading) {
@@ -52,7 +64,7 @@ function OfficialIncidentDetailContent() {
 
       <p className="mt-6 text-sm text-text-muted">{incident.incident_number}</p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="text-[32px] font-semibold">{incident.title}</h1>
+        <h1 className="min-w-0 break-words text-[26px] font-semibold md:text-[32px]">{incident.title}</h1>
         <IncidentStatusBadge status={incident.status} />
         <IncidentPriorityBadge priority={incident.priority} />
       </div>
@@ -60,10 +72,10 @@ function OfficialIncidentDetailContent() {
       <p className="text-sm text-text-secondary">{incident.category.name}</p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="order-2 space-y-6 lg:order-1">
-          <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="order-2 min-w-0 space-y-6 lg:order-1">
+          <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
             <h3 className="text-[18px] font-semibold mb-2">Description</h3>
-            <p className="text-text-secondary whitespace-pre-wrap">{incident.description}</p>
+            <p className="break-words text-text-secondary whitespace-pre-wrap">{incident.description}</p>
 
             {incident.images.length > 0 ? (
               <div className="mt-6 border-t border-border pt-6">
@@ -72,7 +84,8 @@ function OfficialIncidentDetailContent() {
                 <img
                   src={incident.images[0].cloudinary_url}
                     alt={`Photo related to ${incident.title}`}
-                  className="max-h-96 rounded-md border border-border object-contain"
+                  loading="lazy"
+                  className="max-h-96 w-full rounded-md border border-border object-contain"
                 />
               </div>
             ) : null}
@@ -95,7 +108,7 @@ function OfficialIncidentDetailContent() {
           <IncidentMessages incidentId={incident.id} />
         </div>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-1 min-w-0 lg:order-2">
           <OfficialProgressPanel incident={incident} onUpdated={setIncident} />
         </div>
       </div>

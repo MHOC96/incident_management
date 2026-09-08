@@ -1,17 +1,54 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
+import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
 import { IncidentMessages } from "@/components/incidents/IncidentMessages";
-import { IncidentPriorityBadge } from "@/components/incidents/IncidentPriorityBadge";
-import { IncidentStatusBadge } from "@/components/incidents/IncidentStatusBadge";
+import {
+  IncidentMetaGrid,
+  type IncidentMetaItem,
+} from "@/components/incidents/IncidentMetaGrid";
+import {
+  IncidentPageSkeleton,
+  IncidentPageState,
+} from "@/components/incidents/IncidentPageState";
+import { IncidentSection } from "@/components/incidents/IncidentSection";
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { formatDate, formatLocationLabel, getVisibilityLabel } from "@/lib/format";
+import { getStudentNextStep, getStudentStatusSummary } from "@/lib/incidentCopy";
+import { formatDate, getVisibilityLabel } from "@/lib/format";
 import { incidentService } from "@/services/incidents";
 import type { StudentIncident } from "@/types";
+
+function buildMetaItems(incident: StudentIncident): IncidentMetaItem[] {
+  const items: IncidentMetaItem[] = [
+    { label: "Submitted", value: formatDate(incident.created_at) },
+    { label: "Visibility", value: getVisibilityLabel(incident.visibility) },
+  ];
+
+  if (incident.current_assignment) {
+    items.push({
+      label: "Assigned to",
+      value: incident.current_assignment.assigned_official_name,
+    });
+  }
+
+  if (incident.verified_at) {
+    items.push({ label: "Verified", value: formatDate(incident.verified_at) });
+  }
+
+  if (incident.resolved_at) {
+    items.push({ label: "Resolved", value: formatDate(incident.resolved_at) });
+  }
+
+  if (incident.closed_at) {
+    items.push({ label: "Closed", value: formatDate(incident.closed_at) });
+  }
+
+  return items;
+}
 
 function StudentIncidentDetailContent() {
   const params = useParams<{ id: string }>();
@@ -21,22 +58,34 @@ function StudentIncidentDetailContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
+    setIsLoading(true);
+    setError("");
     void (async () => {
       try {
         const data = await incidentService.getById(Number(params.id));
-        setIncident(data);
+        if (!ignore) {
+          setIncident(data);
+        }
       } catch {
-        setError("We couldn't load this incident.");
+        if (!ignore) {
+          setError("We couldn't load this incident.");
+        }
       } finally {
-        setIsLoading(false);
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     })();
+    return () => {
+      ignore = true;
+    };
   }, [params.id]);
 
   if (isLoading) {
     return (
       <PageContainer width="app">
-        <p className="py-16 text-sm text-text-secondary">Loading incident...</p>
+        <IncidentPageSkeleton />
       </PageContainer>
     );
   }
@@ -44,109 +93,82 @@ function StudentIncidentDetailContent() {
   if (error || !incident) {
     return (
       <PageContainer width="app">
-        <p className="py-16 text-sm text-danger">{error || "Incident not found."}</p>
+        <IncidentPageState
+          tone="danger"
+          message={error || "Incident not found."}
+        />
       </PageContainer>
     );
   }
 
   const canMessage =
     incident.status !== "CLOSED" && incident.status !== "REJECTED";
+  const metaItems = buildMetaItems(incident);
 
   return (
     <PageContainer width="app">
-      <section className="py-10">
+      <section className="py-6 md:py-10">
         {searchParams.get("submitted") ? (
-          <p className="mb-6 rounded-md border border-success/20 bg-success/5 px-3 py-2 text-sm text-success">
-            Incident submitted successfully.
-          </p>
+          <div className="mb-5 rounded-md border border-success/30 px-4 py-3 text-sm text-success">
+            Your report was submitted successfully. Staff will review it soon.
+          </div>
         ) : null}
 
-        <Link
-          href="/student/dashboard"
-          className="text-sm font-medium text-primary hover:text-primary-dark"
-        >
-          Back to dashboard
-        </Link>
+        <IncidentDetailHeader
+          backHref="/student/dashboard"
+          backLabel="Back to my reports"
+          incidentNumber={incident.incident_number}
+          title={incident.title}
+          status={incident.status}
+          priority={incident.priority}
+          location={incident.location}
+          category={incident.category}
+          summary={getStudentStatusSummary(incident.status)}
+          showPriority={false}
+        />
 
-        <p className="mt-6 text-sm text-text-muted">{incident.incident_number}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-[32px] font-semibold">{incident.title}</h1>
-          <IncidentStatusBadge status={incident.status} />
-          <IncidentPriorityBadge priority={incident.priority} />
+        <div className="mt-5 rounded-md border border-border px-4 py-3">
+          <p className="text-sm font-medium text-foreground">What happens next</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            {getStudentNextStep(incident.status)}
+          </p>
         </div>
-        <p className="mt-2 text-text-secondary">
-          {formatLocationLabel(incident.location)}
-        </p>
-        <p className="text-sm text-text-secondary">{incident.category.name}</p>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-surface p-6">
-              <h2 className="text-[18px] font-semibold mb-2">Description</h2>
-              <p className="text-text-secondary whitespace-pre-wrap">{incident.description}</p>
+        <div className="mt-5 flex flex-col gap-5 lg:mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-6">
+          <IncidentSection
+            title="Your report"
+            className="order-1 lg:col-start-1 lg:row-start-1"
+          >
+            <p className="whitespace-pre-wrap break-words text-sm text-text-secondary md:text-[15px]">
+              {incident.description}
+            </p>
+            {incident.images.length > 0 ? (
+              <div className="mt-5 border-t border-border pt-5">
+                <h3 className="mb-3 text-sm font-medium text-foreground">Photo evidence</h3>
+                <IncidentEvidence images={incident.images} title={incident.title} />
+              </div>
+            ) : null}
+          </IncidentSection>
 
-              {incident.images.length > 0 ? (
-                <div className="mt-6 border-t border-border pt-6">
-                  <h2 className="text-[18px] font-semibold mb-2">Evidence</h2>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={incident.images[0].cloudinary_url}
-                  alt={`Photo related to ${incident.title}`}
-                    className="max-h-96 rounded-lg border border-border object-contain"
-                  />
-                </div>
-              ) : null}
+          <div
+            className="contents lg:block lg:col-start-2 lg:row-start-1 lg:sticky lg:top-[88px] lg:space-y-5 lg:self-start"
+          >
+            <div className="order-3 lg:order-none">
+              <IncidentTimeline incident={incident} />
             </div>
-
-            {canMessage ? (
-              <IncidentMessages incidentId={incident.id} />
-            ) : (
-              <IncidentMessages incidentId={incident.id} readOnly />
-            )}
+            <IncidentSection
+              title="Details"
+              className="order-2 lg:order-none"
+            >
+              <IncidentMetaGrid items={metaItems} />
+            </IncidentSection>
           </div>
 
-          <div className="space-y-6">
-            <IncidentTimeline incident={incident} />
-
-            <div className="rounded-lg border border-border bg-surface p-6">
-              <h2 className="text-[18px] font-semibold mb-4">Details</h2>
-              <dl className="space-y-3 text-sm">
-                <div>
-                  <dt className="text-text-muted">Submitted</dt>
-                  <dd className="font-medium">{formatDate(incident.created_at)}</dd>
-                </div>
-                {incident.verified_at ? (
-                  <div>
-                    <dt className="text-text-muted">Verified</dt>
-                    <dd className="font-medium">{formatDate(incident.verified_at)}</dd>
-                  </div>
-                ) : null}
-                {incident.current_assignment ? (
-                  <div>
-                    <dt className="text-text-muted">Assigned to</dt>
-                    <dd className="font-medium">
-                      {incident.current_assignment.assigned_official_name}
-                    </dd>
-                  </div>
-                ) : null}
-                <div>
-                  <dt className="text-text-muted">Visibility</dt>
-                  <dd className="font-medium">{getVisibilityLabel(incident.visibility)}</dd>
-                </div>
-                {incident.resolved_at ? (
-                  <div>
-                    <dt className="text-text-muted">Resolved</dt>
-                    <dd className="font-medium">{formatDate(incident.resolved_at)}</dd>
-                  </div>
-                ) : null}
-                {incident.closed_at ? (
-                  <div>
-                    <dt className="text-text-muted">Closed</dt>
-                    <dd className="font-medium">{formatDate(incident.closed_at)}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </div>
+          <div className="order-4 lg:col-start-1 lg:row-start-2">
+            <IncidentMessages
+              incidentId={incident.id}
+              readOnly={!canMessage}
+            />
           </div>
         </div>
       </section>

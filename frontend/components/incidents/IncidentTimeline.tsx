@@ -91,24 +91,28 @@ export function IncidentTimeline({ incident }: IncidentTimelineProps) {
   const events = buildTimelineEvents(incident);
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-6">
+    <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
       <h2 className="text-[18px] font-semibold mb-4">Incident timeline</h2>
       {events.length === 0 ? (
         <p className="text-sm text-text-secondary">No progress recorded yet.</p>
       ) : (
-        <ol className="space-y-4">
+        <ol className="space-y-0">
           {events.map((event, index) => (
             <li key={event.id} className="flex gap-3">
               <div className="flex flex-col items-center">
-                <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
+                <span
+                  className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                    index === events.length - 1 ? "bg-primary" : "bg-border"
+                  }`}
+                />
                 {index < events.length - 1 ? (
-                  <span className="mt-1 w-px flex-1 bg-border" />
+                  <span className="mt-1 w-px flex-1 min-h-6 bg-border" />
                 ) : null}
               </div>
-              <div className="pb-2">
+              <div className={`min-w-0 ${index < events.length - 1 ? "pb-4" : ""}`}>
                 <p className="text-sm font-medium">{event.label}</p>
                 {event.detail ? (
-                  <p className="text-sm text-text-secondary">{event.detail}</p>
+                  <p className="break-words text-sm text-text-secondary">{event.detail}</p>
                 ) : null}
                 <p className="text-xs text-text-muted">{formatDate(event.at)}</p>
               </div>

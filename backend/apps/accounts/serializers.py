@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.common.choices import AccountStatus, UserRole
+from apps.common.validators import validate_sri_lanka_phone
 
 
 class UserSummarySerializer(serializers.ModelSerializer):
@@ -23,18 +24,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "role",
             "position",
             "status",
-            "department",
-            "year",
             "created_at",
         ]
         read_only_fields = [
             "id",
             "email",
+            "mc_number",
             "role",
             "position",
             "status",
             "created_at",
         ]
+
+    def validate_phone(self, value):
+        if not value:
+            return ""
+        try:
+            return validate_sri_lanka_phone(value, required=False)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
@@ -50,14 +58,18 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             "mc_number",
             "password",
             "password_confirm",
-            "department",
-            "year",
         ]
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         return attrs
+
+    def validate_phone(self, value):
+        try:
+            return validate_sri_lanka_phone(value, required=True)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def create(self, validated_data):
         validated_data.pop("password_confirm")
@@ -74,13 +86,20 @@ class OfficialCreateSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "position",
-            "department",
         ]
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
+
+    def validate_phone(self, value):
+        if not value:
+            return ""
+        try:
+            return validate_sri_lanka_phone(value, required=False)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
 
 class OfficialAccountSerializer(serializers.ModelSerializer):
@@ -92,7 +111,6 @@ class OfficialAccountSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "position",
-            "department",
             "status",
             "created_at",
         ]
@@ -108,6 +126,12 @@ class OfficialStatusSerializer(serializers.ModelSerializer):
         if value not in {AccountStatus.ACTIVE, AccountStatus.INACTIVE}:
             raise serializers.ValidationError("Only active or inactive status is allowed.")
         return value
+
+    def update(self, instance, validated_data):
+        instance.status = validated_data["status"]
+        instance.is_active = instance.status == AccountStatus.ACTIVE
+        instance.save(update_fields=["status", "is_active", "updated_at"])
+        return instance
 
 
 class OfficialActivateSerializer(serializers.Serializer):

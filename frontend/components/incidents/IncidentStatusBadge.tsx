@@ -8,7 +8,7 @@ type IncidentStatusBadgeProps = {
 export function IncidentStatusBadge({ status }: IncidentStatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium ${getStatusClassName(status)}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border px-2 py-0.5 text-xs font-medium ${getStatusClassName(status)}`}
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
       {getStatusLabel(status)}

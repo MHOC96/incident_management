@@ -20,15 +20,16 @@ def create_official_invitation(*, dean, validated_data):
         phone=validated_data.get("phone", ""),
         role=UserRole.OFFICIAL,
         position=validated_data["position"],
-        department=validated_data.get("department", ""),
         status=AccountStatus.INVITED,
     )
     user.set_unusable_password()
+    user.is_active = False
     user.activation_token = token
     user.activation_token_expires_at = expires_at
     user.save(
         update_fields=[
             "password",
+            "is_active",
             "activation_token",
             "activation_token_expires_at",
             "status",
@@ -71,12 +72,14 @@ def activate_official_account(*, token: str, password: str) -> User:
 
     user.set_password(password)
     user.status = AccountStatus.ACTIVE
+    user.is_active = True
     user.activation_token = ""
     user.activation_token_expires_at = None
     user.save(
         update_fields=[
             "password",
             "status",
+            "is_active",
             "activation_token",
             "activation_token_expires_at",
             "updated_at",

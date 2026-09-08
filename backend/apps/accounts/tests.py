@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.common.choices import IncidentStatus, UserRole
+from apps.common.choices import AccountStatus, IncidentStatus, UserRole
 from apps.common.authorization import user_can_admin_review_incident, user_can_close_incident
 from apps.incidents.models import Category, Incident, Location
 from apps.incidents.services import admin_verify_and_forward
@@ -152,15 +152,97 @@ class AuthEndpointTests(TestCase):
             {
                 "name": "Bad Actor",
                 "email": "bad@usj.lk",
-                "phone": "0770000000",
+                "phone": "+94770000000",
                 "mc_number": "MC123",
                 "password": "securepass1",
                 "password_confirm": "securepass1",
-                "department": "Commerce",
-                "year": 2,
             },
             format="json",
         )
         self.assertEqual(response.status_code, 201)
         user = User.objects.get(email="bad@usj.lk")
         self.assertEqual(user.role, UserRole.STUDENT)
+
+    def test_student_registration_rejects_invalid_phone(self):
+        response = self.client.post(
+            "/api/auth/register/",
+            {
+                "name": "Test Student",
+                "email": "student2@usj.lk",
+                "phone": "0770000000",
+                "mc_number": "MC124",
+                "password": "securepass1",
+                "password_confirm": "securepass1",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("phone", response.json())
+
+    def test_inactive_official_cannot_login(self):
+        official = User.objects.create_user(
+            email="official@usj.lk",
+            password="testpass123",
+            name="Test Official",
+            role=UserRole.OFFICIAL,
+        )
+        official.status = AccountStatus.INACTIVE
+        official.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(
+            "/api/auth/login/",
+            {"email": "official@usj.lk", "password": "testpass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_deactivating_official_blocks_login(self):
+        dean = User.objects.create_user(
+            email="dean@usj.lk",
+            password="testpass123",
+            name="Test Dean",
+            role=UserRole.DEAN,
+        )
+        official = User.objects.create_user(
+            email="official2@usj.lk",
+            password="testpass123",
+            name="Test Official",
+            role=UserRole.OFFICIAL,
+        )
+        self.client.force_authenticate(user=dean)
+        response = self.client.patch(
+            f"/api/officials/{official.id}/",
+            {"status": AccountStatus.INACTIVE},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        official.refresh_from_db()
+        self.assertFalse(official.is_active)
+
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/auth/login/",
+            {"email": "official2@usj.lk", "password": "testpass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_profile_cannot_change_mc_number(self):
+        student = User.objects.create_user(
+            email="student-profile@usj.lk",
+            password="testpass123",
+            name="Test Student",
+            role=UserRole.STUDENT,
+            mc_number="MC999",
+            phone="+94771111111",
+        )
+        self.client.force_authenticate(user=student)
+        response = self.client.patch(
+            "/api/auth/profile/",
+            {"mc_number": "MC000", "name": "Updated Student"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        student.refresh_from_db()
+        self.assertEqual(student.mc_number, "MC999")
+        self.assertEqual(student.name, "Updated Student")

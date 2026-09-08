@@ -17,7 +17,7 @@ export function Toast({ message, onDismiss }: ToastProps) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-6 right-6 z-50 max-w-sm rounded-md border border-success/30 bg-surface px-4 py-3 text-sm"
+      className="fixed right-4 z-[60] max-w-[min(20rem,calc(100vw-2rem))] rounded-md border border-success/30 bg-surface px-4 py-3 text-sm [bottom:max(1.5rem,env(safe-area-inset-bottom))]"
     >
       <p className="text-success">{message}</p>
     </div>

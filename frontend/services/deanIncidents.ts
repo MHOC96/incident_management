@@ -14,6 +14,9 @@ export const deanIncidentService = {
   listAwaitingAction: () =>
     apiClient.get<PaginatedResponse<DeanIncident>>("/incidents/awaiting-action/"),
 
+  listCurrentlyUnderway: () =>
+    apiClient.get<PaginatedResponse<DeanIncident>>("/incidents/currently-underway/"),
+
   listResolvedAwaitingClosure: () =>
     apiClient.get<PaginatedResponse<DeanIncident>>(
       "/incidents/resolved-awaiting-closure/",

@@ -7,7 +7,7 @@ from apps.common.authorization import (
     user_can_resolve_incident,
     user_can_start_progress_incident,
 )
-from apps.common.choices import IncidentStatus, UserRole
+from apps.common.choices import IncidentStatus, IncidentVisibility, UserRole
 from apps.incidents.models import Category, Incident, Location
 from apps.notifications.models import Notification
 
@@ -164,4 +164,244 @@ class OfficialFlowTests(TestCase):
             {"comment": "Student should not resolve this incident."},
             format="json",
         )
+        self.assertEqual(response.status_code, 403)
+
+
+class IncidentCreateTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            email="student@usj.lk",
+            password="testpass123",
+            name="Test Student",
+            role=UserRole.STUDENT,
+        )
+        self.category = Category.objects.create(name="Maintenance", slug="maintenance")
+        self.location = Location.objects.create(name="Block B")
+        self.client.force_authenticate(user=self.student)
+
+    def test_create_incident_with_existing_location_id(self):
+        response = self.client.post(
+            "/api/incidents/",
+            {
+                "title": "Broken door",
+                "description": "Door hinge is loose",
+                "category": self.category.id,
+                "location": self.location.id,
+                "visibility": "PRIVATE",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        incident = Incident.objects.get(id=response.json()["id"])
+        self.assertEqual(incident.location_id, self.location.id)
+
+    def test_create_incident_with_new_location_name(self):
+        response = self.client.post(
+            "/api/incidents/",
+            {
+                "title": "Water leak",
+                "description": "Leak near the staircase",
+                "category": self.category.id,
+                "location_name": "Near main staircase",
+                "visibility": "PRIVATE",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        incident = Incident.objects.get(id=response.json()["id"])
+        self.assertEqual(incident.location.name, "Near main staircase")
+        self.assertTrue(
+            Location.objects.filter(name="Near main staircase", is_active=True).exists()
+        )
+
+    def test_create_incident_reuses_existing_location_by_name(self):
+        response = self.client.post(
+            "/api/incidents/",
+            {
+                "title": "Broken window",
+                "description": "Window cracked in corridor",
+                "category": self.category.id,
+                "location_name": "block b",
+                "visibility": "PRIVATE",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        incident = Incident.objects.get(id=response.json()["id"])
+        self.assertEqual(incident.location_id, self.location.id)
+        self.assertEqual(Location.objects.filter(name__iexact="block b").count(), 1)
+
+    def test_create_incident_requires_location(self):
+        response = self.client.post(
+            "/api/incidents/",
+            {
+                "title": "Missing location",
+                "description": "No location provided",
+                "category": self.category.id,
+                "visibility": "PRIVATE",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("location_name", response.json())
+
+
+class IncidentSecurityAndPublicTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            email="student@usj.lk",
+            password="testpass123",
+            name="Test Student",
+            role=UserRole.STUDENT,
+        )
+        self.official = User.objects.create_user(
+            email="official@usj.lk",
+            password="testpass123",
+            name="Test Official",
+            role=UserRole.OFFICIAL,
+        )
+        category = Category.objects.create(name="Maintenance", slug="maintenance")
+        location = Location.objects.create(name="Block B")
+        self.public_submitted = Incident.objects.create(
+            incident_number="INC-2026-00030",
+            title="Public but not verified",
+            description="Should not be publicly listed yet",
+            category=category,
+            location=location,
+            reporter=self.student,
+            status=IncidentStatus.SUBMITTED,
+            visibility=IncidentVisibility.PUBLIC,
+        )
+        self.public_verified = Incident.objects.create(
+            incident_number="INC-2026-00031",
+            title="Verified public issue",
+            description="Safe for public listing",
+            category=category,
+            location=location,
+            reporter=self.student,
+            status=IncidentStatus.VERIFIED,
+            visibility=IncidentVisibility.PUBLIC,
+        )
+
+    def test_public_detail_hides_unverified_incidents(self):
+        response = self.client.get(f"/api/incidents/{self.public_submitted.id}/public/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_public_detail_returns_verified_incidents(self):
+        response = self.client.get(f"/api/incidents/{self.public_verified.id}/public/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], self.public_verified.id)
+        self.assertNotIn("reporter", data)
+        self.assertNotIn("reporter_name", data)
+
+    def test_unassigned_official_cannot_read_messages_on_public_incident(self):
+        self.client.force_authenticate(user=self.official)
+        response = self.client.get(f"/api/incidents/{self.public_verified.id}/messages/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_student_cannot_create_internal_message(self):
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(
+            f"/api/incidents/{self.public_verified.id}/messages/",
+            {"content": "Please keep this private from staff.", "is_internal": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertFalse(response.json()["is_internal"])
+
+
+class DeanOversightTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            email="dean-student@usj.lk",
+            password="testpass123",
+            name="Dean Student",
+            role=UserRole.STUDENT,
+        )
+        self.dean = User.objects.create_user(
+            email="oversight-dean@usj.lk",
+            password="testpass123",
+            name="Oversight Dean",
+            role=UserRole.DEAN,
+        )
+        self.official = User.objects.create_user(
+            email="oversight-official@usj.lk",
+            password="testpass123",
+            name="Oversight Official",
+            role=UserRole.OFFICIAL,
+        )
+        category = Category.objects.create(name="Electrical", slug="electrical")
+        location = Location.objects.create(name="Main Hall")
+        self.awaiting = Incident.objects.create(
+            incident_number="INC-2026-00040",
+            title="Waiting for assignment",
+            description="Needs a responsible official",
+            category=category,
+            location=location,
+            reporter=self.student,
+            status=IncidentStatus.FORWARDED_TO_DEAN,
+        )
+        self.assigned = Incident.objects.create(
+            incident_number="INC-2026-00041",
+            title="Assigned but not started",
+            description="Official has not begun work",
+            category=category,
+            location=location,
+            reporter=self.student,
+            status=IncidentStatus.FORWARDED_TO_DEAN,
+        )
+        assign_incident(
+            self.assigned,
+            assigned_official=self.official,
+            assigned_by=self.dean,
+        )
+        self.assigned.refresh_from_db()
+        self.in_progress = Incident.objects.create(
+            incident_number="INC-2026-00042",
+            title="Work underway",
+            description="Official is repairing the issue",
+            category=category,
+            location=location,
+            reporter=self.student,
+            status=IncidentStatus.FORWARDED_TO_DEAN,
+        )
+        assign_incident(
+            self.in_progress,
+            assigned_official=self.official,
+            assigned_by=self.dean,
+        )
+        self.in_progress.status = IncidentStatus.IN_PROGRESS
+        self.in_progress.save(update_fields=["status", "updated_at"])
+
+    def test_dean_stats_separate_assigned_and_in_progress(self):
+        self.client.force_authenticate(user=self.dean)
+        response = self.client.get("/api/incidents/dean-stats/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["awaiting_action"], 1)
+        self.assertEqual(data["assigned"], 1)
+        self.assertEqual(data["in_progress"], 1)
+
+    def test_dean_can_list_currently_underway_incidents(self):
+        self.client.force_authenticate(user=self.dean)
+        response = self.client.get("/api/incidents/currently-underway/")
+        self.assertEqual(response.status_code, 200)
+        results = response.json()["results"]
+        ids = {item["id"] for item in results}
+        self.assertIn(self.assigned.id, ids)
+        self.assertIn(self.in_progress.id, ids)
+        self.assertNotIn(self.awaiting.id, ids)
+        assigned_row = next(item for item in results if item["id"] == self.assigned.id)
+        self.assertEqual(
+            assigned_row["current_assignment"]["assigned_official_name"],
+            self.official.name,
+        )
+
+    def test_student_cannot_list_currently_underway_incidents(self):
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get("/api/incidents/currently-underway/")
         self.assertEqual(response.status_code, 403)

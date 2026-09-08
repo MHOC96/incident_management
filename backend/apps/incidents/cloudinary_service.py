@@ -1,6 +1,9 @@
+import os
+
 import cloudinary
 import cloudinary.uploader
 from django.conf import settings
+from PIL import Image, UnidentifiedImageError
 from rest_framework.exceptions import ValidationError
 
 ALLOWED_IMAGE_CONTENT_TYPES = {
@@ -8,6 +11,8 @@ ALLOWED_IMAGE_CONTENT_TYPES = {
     "image/png",
     "image/webp",
 }
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
 
@@ -25,8 +30,27 @@ def validate_image_file(uploaded_file) -> None:
     if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
         raise ValidationError("Only JPEG, PNG, and WebP images are allowed.")
 
+    filename = getattr(uploaded_file, "name", "") or ""
+    _, extension = os.path.splitext(filename.lower())
+    if extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise ValidationError("Only JPEG, PNG, and WebP images are allowed.")
+
     if uploaded_file.size > MAX_IMAGE_SIZE_BYTES:
         raise ValidationError("Image must be 5 MB or smaller.")
+
+    uploaded_file.seek(0)
+    image_format = None
+    try:
+        with Image.open(uploaded_file) as image:
+            image_format = image.format
+            image.verify()
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValidationError("The uploaded file is not a valid image.") from exc
+    finally:
+        uploaded_file.seek(0)
+
+    if image_format not in ALLOWED_IMAGE_FORMATS:
+        raise ValidationError("Only JPEG, PNG, and WebP images are allowed.")
 
 
 def upload_incident_image(uploaded_file, incident_number: str) -> dict:

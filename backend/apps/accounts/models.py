@@ -50,8 +50,6 @@ class User(AbstractUser):
         choices=AccountStatus.choices,
         default=AccountStatus.ACTIVE,
     )
-    department = models.CharField(max_length=255, blank=True)
-    year = models.PositiveSmallIntegerField(blank=True, null=True)
     activation_token = models.CharField(max_length=128, blank=True)
     activation_token_expires_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
