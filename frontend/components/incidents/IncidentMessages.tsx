@@ -24,6 +24,7 @@ type IncidentMessagesProps = {
   incidentStatus: IncidentStatus;
   hasAssignedOfficial?: boolean;
   readOnly?: boolean;
+  hideHeader?: boolean;
 };
 
 function MessageBubble({
@@ -56,6 +57,7 @@ export function IncidentMessages({
   incidentStatus,
   hasAssignedOfficial = false,
   readOnly = false,
+  hideHeader = false,
 }: IncidentMessagesProps) {
   const { user } = useAuth();
   const [activeChannel, setActiveChannel] = useState<MessageChannel>("STUDENT_ADMIN");
@@ -161,12 +163,20 @@ export function IncidentMessages({
       tabIndex={-1}
       className="incident-messages rounded-lg border border-border bg-surface p-4 md:p-6"
     >
-      <h2 className="text-[18px] font-semibold mb-2">Communication</h2>
-      <p className="mb-4 text-sm text-text-secondary">
-        Messages are private to you and the relevant university office handling this report.
-      </p>
+      {hideHeader ? null : (
+        <>
+          <h2 className="text-[18px] font-semibold mb-2">Communication</h2>
+          <p className="mb-4 text-sm text-text-secondary">
+            Messages are private to you and the relevant university office handling this report.
+          </p>
+        </>
+      )}
 
-      <div className="message-channel-tabs" role="tablist" aria-label="Communication channels">
+      <div
+        className={`message-channel-tabs ${hideHeader ? "mt-0" : ""}`}
+        role="tablist"
+        aria-label="Communication channels"
+      >
         {channels.map((channel) => (
           <button
             key={channel}

@@ -14,6 +14,7 @@ type IncidentDetailHeaderProps = {
   category: Category;
   summary?: string;
   showPriority?: boolean;
+  showBorderBottom?: boolean;
 };
 
 function getHeaderLocation(location: Location): string {
@@ -31,9 +32,12 @@ export function IncidentDetailHeader({
   category,
   summary,
   showPriority = true,
+  showBorderBottom = true,
 }: IncidentDetailHeaderProps) {
   return (
-    <header className="border-b border-border pb-5 md:pb-6">
+    <header
+      className={`pb-5 md:pb-6 ${showBorderBottom ? "border-b border-border" : ""}`}
+    >
       <Link
         href={backHref}
         className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:text-primary-dark"

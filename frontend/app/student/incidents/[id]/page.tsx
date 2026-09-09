@@ -3,7 +3,6 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { DetailJumpLinks } from "@/components/incidents/DetailJumpLinks";
 import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
 import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
 import { IncidentMessages } from "@/components/incidents/IncidentMessages";
@@ -18,7 +17,6 @@ import {
 import { IncidentSection } from "@/components/incidents/IncidentSection";
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { getStudentNextStep, getStudentStatusSummary } from "@/lib/incidentCopy";
 import { formatDate, getVisibilityLabel } from "@/lib/format";
 import { incidentService } from "@/services/incidents";
 import type { StudentIncident } from "@/types";
@@ -124,56 +122,39 @@ function StudentIncidentDetailContent() {
           priority={incident.priority}
           location={incident.location}
           category={incident.category}
-          summary={getStudentStatusSummary(incident.status)}
           showPriority={false}
+          showBorderBottom={false}
         />
 
-        <DetailJumpLinks />
-        <div className="mt-5 rounded-md border border-border px-4 py-3">
-          <p className="text-sm font-medium text-foreground">What happens next</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            {getStudentNextStep(incident.status)}
-          </p>
-        </div>
+        <div className="mt-5 flex flex-col gap-5 lg:mt-6">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start">
+            <IncidentSection title="Your report">
+              <p className="whitespace-pre-wrap break-words text-sm text-text-secondary md:text-[15px]">
+                {incident.description}
+              </p>
+              {incident.images.length > 0 ? (
+                <div className="mt-5 border-t border-border pt-5">
+                  <h3 className="mb-3 text-sm font-medium text-foreground">Photo evidence</h3>
+                  <IncidentEvidence images={incident.images} title={incident.title} />
+                </div>
+              ) : null}
+            </IncidentSection>
 
-        <div className="mt-5 flex flex-col gap-5 lg:mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-6">
-          <IncidentSection
-            title="Your report"
-            className="order-1 lg:col-start-1 lg:row-start-1"
-          >
-            <p className="whitespace-pre-wrap break-words text-sm text-text-secondary md:text-[15px]">
-              {incident.description}
-            </p>
-            {incident.images.length > 0 ? (
-              <div className="mt-5 border-t border-border pt-5">
-                <h3 className="mb-3 text-sm font-medium text-foreground">Photo evidence</h3>
-                <IncidentEvidence images={incident.images} title={incident.title} />
-              </div>
-            ) : null}
-          </IncidentSection>
-
-          <div
-            className="contents lg:block lg:col-start-2 lg:row-start-1 lg:space-y-5 lg:self-start"
-          >
-            <div className="order-3 lg:order-none">
+            <div className="flex flex-col gap-5">
+              <IncidentSection title="Details">
+                <IncidentMetaGrid items={metaItems} />
+              </IncidentSection>
               <IncidentTimeline incident={incident} />
             </div>
-            <IncidentSection
-              title="Details"
-              className="order-2 lg:order-none"
-            >
-              <IncidentMetaGrid items={metaItems} />
-            </IncidentSection>
           </div>
 
-          <div className="order-4 lg:col-start-1 lg:row-start-2">
-            <IncidentMessages
-              incidentId={incident.id}
-              incidentStatus={incident.status}
-              hasAssignedOfficial={Boolean(incident.current_assignment)}
-              readOnly={!canMessage}
-            />
-          </div>
+          <IncidentMessages
+            incidentId={incident.id}
+            incidentStatus={incident.status}
+            hasAssignedOfficial={Boolean(incident.current_assignment)}
+            readOnly={!canMessage}
+            hideHeader
+          />
         </div>
       </section>
     </PageContainer>
