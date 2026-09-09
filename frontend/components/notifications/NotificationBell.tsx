@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Bell, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getIncidentDetailRoute } from "@/lib/incidentRoutes";
@@ -119,9 +120,9 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
             return next;
           })
         }
-        className="relative inline-flex h-11 items-center rounded-md px-2 text-sm text-text-secondary hover:bg-surface-hover hover:text-foreground"
+        className="relative inline-flex h-11 min-w-11 justify-center items-center rounded-md px-2 text-sm text-text-secondary hover:bg-surface-hover hover:text-foreground"
       >
-        Notifications
+        <Bell size={20} aria-hidden="true" /><span className="hidden xl:inline ml-2">Notifications</span>
         {unreadCount > 0 ? (
           <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-sm bg-danger px-1.5 text-[11px] font-semibold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -132,7 +133,7 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
       {isOpen ? (
         <div
           id="notification-panel"
-          className="fixed inset-x-4 top-[4.75rem] z-50 max-h-[min(28rem,calc(100dvh-6rem))] overflow-hidden rounded-lg border border-border bg-surface sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[min(20rem,calc(100vw-2rem))]"
+          className="notification-panel"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Notifications</h2>
@@ -145,9 +146,10 @@ export function NotificationBell({ onOpen }: NotificationBellProps) {
                 Mark all read
               </button>
             ) : null}
+            <button type="button" aria-label="Close notifications" className="inline-flex min-h-11 min-w-11 items-center justify-center" onClick={() => { setIsOpen(false); buttonRef.current?.focus(); }}><X size={18} aria-hidden="true" /></button>
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <div className="notification-list">
             {isLoading ? (
               <p className="px-4 py-6 text-sm text-text-secondary">Loading notifications...</p>
             ) : notifications.length === 0 ? (

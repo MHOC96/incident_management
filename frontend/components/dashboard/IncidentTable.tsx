@@ -49,8 +49,8 @@ export function IncidentTable({
   }
 
   return (
-    <>
-      <div className="divide-y divide-border md:hidden">
+    <div className="incident-table">
+      <div className="incident-table-records divide-y divide-border">
         {rows.map((row) => (
           <Link
             key={row.id}
@@ -87,19 +87,19 @@ export function IncidentTable({
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
+      <div className="incident-table-grid">
           <table className={`w-full text-left text-sm ${showAssigned ? "min-w-[760px]" : "min-w-[640px]"}`}>
           <thead className="border-b border-border text-text-muted">
             <tr>
-              <th className="px-6 py-3 font-medium">Incident ID</th>
-              <th className="px-6 py-3 font-medium">Title</th>
-              {showReporter ? <th className="px-6 py-3 font-medium">Reporter</th> : null}
-              {showCategory ? <th className="px-6 py-3 font-medium">Category</th> : null}
-              {showAssigned ? <th className="px-6 py-3 font-medium">Assigned to</th> : null}
-              <th className="px-6 py-3 font-medium">Location</th>
-              <th className="px-6 py-3 font-medium">Status</th>
-              {showPriority ? <th className="px-6 py-3 font-medium">Priority</th> : null}
-              <th className="px-6 py-3 font-medium">{dateLabel}</th>
+              <th scope="col" className="px-4 py-3 font-medium">Incident ID</th>
+              <th scope="col" className="px-4 py-3 font-medium">Title</th>
+              {showReporter ? <th scope="col" className="px-4 py-3 font-medium">Reporter</th> : null}
+              {showCategory ? <th scope="col" className="px-4 py-3 font-medium">Category</th> : null}
+              {showAssigned ? <th scope="col" className="px-4 py-3 font-medium">Assigned to</th> : null}
+              <th scope="col" className="px-4 py-3 font-medium">Location</th>
+              <th scope="col" className="px-4 py-3 font-medium">Status</th>
+              {showPriority ? <th scope="col" className="px-4 py-3 font-medium">Priority</th> : null}
+              <th scope="col" className="px-4 py-3 font-medium">{dateLabel}</th>
             </tr>
           </thead>
           <tbody>
@@ -108,40 +108,40 @@ export function IncidentTable({
                 key={row.id}
                 className="border-b border-border last:border-b-0 hover:bg-surface-hover/60"
               >
-                <td className="px-6 py-4 text-text-muted">{row.incident_number}</td>
-                <td className="px-6 py-4">
-                  <Link href={row.href} className="font-medium text-foreground hover:text-primary">
+                <td className="px-4 py-4 text-text-muted">{row.incident_number}</td>
+                <td className="px-4 py-4">
+                  <Link href={row.href} className="inline-flex min-h-11 items-center font-medium text-foreground hover:text-primary">
                     {row.title}
                   </Link>
                 </td>
                 {showReporter ? (
-                  <td className="px-6 py-4 text-text-secondary">{row.reporter || "Not listed"}</td>
+                  <td className="px-4 py-4 text-text-secondary">{row.reporter || "Not listed"}</td>
                 ) : null}
                 {showCategory ? (
-                  <td className="px-6 py-4 text-text-secondary">{row.category || "Not listed"}</td>
+                  <td className="px-4 py-4 text-text-secondary">{row.category || "Not listed"}</td>
                 ) : null}
                 {showAssigned ? (
-                  <td className="px-6 py-4 text-text-secondary">
+                  <td className="px-4 py-4 text-text-secondary">
                     {row.assignedTo || "Not assigned"}
                   </td>
                 ) : null}
-                <td className="px-6 py-4 text-text-secondary">
+                <td className="px-4 py-4 text-text-secondary">
                   {row.location ? formatLocationLabel(row.location) : "Not specified"}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4">
                   <IncidentStatusBadge status={row.status} />
                 </td>
                 {showPriority ? (
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <IncidentPriorityBadge priority={row.priority ?? null} />
                   </td>
                 ) : null}
-                <td className="px-6 py-4 text-text-muted">{formatDate(row.date)}</td>
+                <td className="px-4 py-4 text-text-muted">{formatDate(row.date)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }

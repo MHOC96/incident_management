@@ -22,7 +22,7 @@ export function LinkButton({
 }: LinkButtonProps) {
   return (
     <Link
-      className={`inline-flex h-11 min-h-11 items-center justify-center rounded-md px-5 text-sm font-medium no-underline transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${variantClasses[variant]} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-[2px] px-5 py-2 text-center leading-snug text-sm font-medium no-underline transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {children}

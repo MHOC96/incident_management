@@ -6,7 +6,7 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { AuthLayout } from "@/components/layout/AuthLayout";
 import { formatApiError } from "@/lib/errors";
 import { placeholders } from "@/lib/placeholders";
 import { officialService } from "@/services/officials";
@@ -41,17 +41,22 @@ export function ActivateForm() {
   }
 
   return (
-    <PageContainer width="public">
-      <section className="mx-auto max-w-md py-10 md:py-16">
+    <AuthLayout title="Activate official account">
+      <div>
         <p className="font-serif text-sm text-text-secondary mb-2">
           University of Sri Jayewardenepura
         </p>
-        <h1 className="text-[22px] font-semibold mb-2">Activate official account</h1>
+        <h2 className="text-[22px] font-semibold mb-2">Set up your account</h2>
         <p className="text-sm text-text-secondary mb-6">
           Set a password to activate your official university account.
         </p>
 
-        {success ? (
+        {!token ? (
+          <div role="alert" className="space-y-4">
+            <p className="text-sm text-danger">Open the activation link from your invitation email to set up your account.</p>
+            <Link href="/login" className="inline-flex min-h-11 items-center font-medium">Back to sign in</Link>
+          </div>
+        ) : success ? (
           <div className="space-y-4">
             <p className="rounded-md border border-success/20 bg-success/5 px-3 py-2 text-sm text-success">
               Your account is active. You can sign in now.
@@ -64,7 +69,7 @@ export function ActivateForm() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate>
+          <form onSubmit={handleSubmit}>
             <FormField label="Password" htmlFor="password" required>
               <PasswordInput
                 id="password"
@@ -92,7 +97,7 @@ export function ActivateForm() {
             </Button>
           </form>
         )}
-      </section>
-    </PageContainer>
+      </div>
+    </AuthLayout>
   );
 }

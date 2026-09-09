@@ -63,10 +63,11 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-1" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-1">
       <FormField label="Full name" htmlFor="name" required error={errors.name}>
         <Input
           id="name"
+          autoComplete="name"
           value={form.name}
           onChange={(event) => updateField("name", event.target.value)}
           placeholder={placeholders.fullName}

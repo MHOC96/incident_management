@@ -1,16 +1,18 @@
 "use client";
 
-import Link from "next/link";
+import { DetailJumpLinks } from "@/components/incidents/DetailJumpLinks";
+import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
+import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { IncidentMessages } from "@/components/incidents/IncidentMessages";
-import { IncidentPriorityBadge } from "@/components/incidents/IncidentPriorityBadge";
-import { IncidentStatusBadge } from "@/components/incidents/IncidentStatusBadge";
+
+
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { OfficialProgressPanel } from "@/components/official/OfficialProgressPanel";
-import { formatDate, formatLocationLabel } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { officialIncidentService } from "@/services/officialIncidents";
 import type { OfficialIncident } from "@/types";
 
@@ -55,38 +57,27 @@ function OfficialIncidentDetailContent() {
 
   return (
     <section className="py-10">
-      <Link
-        href="/official/dashboard"
-        className="text-sm font-medium text-primary hover:text-primary-dark"
-      >
-        Back to assigned incidents
-      </Link>
-
-      <p className="mt-6 text-sm text-text-muted">{incident.incident_number}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="min-w-0 break-words text-[26px] font-semibold md:text-[32px]">{incident.title}</h1>
-        <IncidentStatusBadge status={incident.status} />
-        <IncidentPriorityBadge priority={incident.priority} />
-      </div>
-      <p className="mt-2 text-text-secondary">{formatLocationLabel(incident.location)}</p>
-      <p className="text-sm text-text-secondary">{incident.category.name}</p>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="order-2 min-w-0 space-y-6 lg:order-1">
+      <IncidentDetailHeader
+        backHref="/official/dashboard"
+        backLabel="Back to assigned incidents"
+        incidentNumber={incident.incident_number}
+        title={incident.title}
+        status={incident.status}
+        priority={incident.priority}
+        location={incident.location}
+        category={incident.category}
+      />
+      <DetailJumpLinks actions />
+      <div className="detail-layout">
+        <div className="detail-body">
           <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
-            <h3 className="text-[18px] font-semibold mb-2">Description</h3>
+            <h2 className="text-[18px] font-semibold mb-2">Description</h2>
             <p className="break-words text-text-secondary whitespace-pre-wrap">{incident.description}</p>
 
             {incident.images.length > 0 ? (
               <div className="mt-6 border-t border-border pt-6">
                 <h3 className="text-[18px] font-semibold mb-2">Evidence</h3>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={incident.images[0].cloudinary_url}
-                    alt={`Photo related to ${incident.title}`}
-                  loading="lazy"
-                  className="max-h-96 w-full rounded-md border border-border object-contain"
-                />
+                <IncidentEvidence images={incident.images} title={incident.title} />
               </div>
             ) : null}
 
@@ -108,7 +99,7 @@ function OfficialIncidentDetailContent() {
           <IncidentMessages incidentId={incident.id} />
         </div>
 
-        <div className="order-1 min-w-0 lg:order-2">
+        <div id="incident-actions" tabIndex={-1} className="detail-actions">
           <OfficialProgressPanel incident={incident} onUpdated={setIncident} />
         </div>
       </div>

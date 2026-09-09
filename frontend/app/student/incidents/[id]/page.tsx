@@ -3,6 +3,7 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { DetailJumpLinks } from "@/components/incidents/DetailJumpLinks";
 import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
 import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
 import { IncidentMessages } from "@/components/incidents/IncidentMessages";
@@ -127,6 +128,7 @@ function StudentIncidentDetailContent() {
           showPriority={false}
         />
 
+        <DetailJumpLinks />
         <div className="mt-5 rounded-md border border-border px-4 py-3">
           <p className="text-sm font-medium text-foreground">What happens next</p>
           <p className="mt-1 text-sm text-text-secondary">
@@ -151,7 +153,7 @@ function StudentIncidentDetailContent() {
           </IncidentSection>
 
           <div
-            className="contents lg:block lg:col-start-2 lg:row-start-1 lg:sticky lg:top-[88px] lg:space-y-5 lg:self-start"
+            className="contents lg:block lg:col-start-2 lg:row-start-1 lg:space-y-5 lg:self-start"
           >
             <div className="order-3 lg:order-none">
               <IncidentTimeline incident={incident} />

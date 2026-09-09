@@ -73,7 +73,7 @@ export function IncidentMessages({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
+    <div id="incident-messages" tabIndex={-1} className="incident-messages rounded-lg border border-border bg-surface p-4 md:p-6">
       <h2 className="text-[18px] font-semibold mb-4">Communication</h2>
 
       {isLoading ? (
@@ -85,7 +85,7 @@ export function IncidentMessages({
             : "No messages yet. If you have extra details for staff, send a note below."}
         </p>
       ) : (
-        <div className="mb-6 space-y-4">
+        <div className="incident-messages-list mb-6 space-y-4">
           {messages.map((message) => (
             <div key={message.id} className="border-b border-border pb-4 last:border-b-0">
               <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -108,6 +108,7 @@ export function IncidentMessages({
         </div>
       )}
 
+      {error ? <p role="alert" className="mb-3 text-sm text-danger">{error}</p> : null}
       {readOnly ? null : (
         <form onSubmit={handleSubmit}>
           <FormField label="Write a message" htmlFor="message-content" required>
@@ -118,11 +119,11 @@ export function IncidentMessages({
               rows={4}
               required
               placeholder={placeholders.message}
-              className="resize-none"
+              className="resize-y"
             />
           </FormField>
           {allowInternal ? (
-            <label htmlFor="message-internal" className="mb-4 flex items-start gap-2 text-sm text-text-secondary">
+            <label htmlFor="message-internal" className="mb-4 flex min-h-11 items-center gap-3 text-sm text-text-secondary">
               <input
                 id="message-internal"
                 type="checkbox"
@@ -133,8 +134,8 @@ export function IncidentMessages({
               Internal note (visible to staff only)
             </label>
           ) : null}
-          {error ? <p className="mb-3 text-sm text-danger">{error}</p> : null}
-          <Button type="submit" className="w-full sm:w-auto" isLoading={isSubmitting} loadingText="Sending message...">
+
+          <Button type="submit" className="w-full sm:w-auto" disabled={!content.trim()} isLoading={isSubmitting} loadingText="Sending message...">
             Send message
           </Button>
         </form>

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { IncidentStatusBadge } from "@/components/incidents/IncidentStatusBadge";
+import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
+import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
+import { DetailJumpLinks } from "@/components/incidents/DetailJumpLinks";
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { formatDate, formatLocationLabel } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { incidentService } from "@/services/incidents";
 import type { PublicIncident } from "@/types";
 
@@ -31,7 +33,7 @@ export default function PublicIncidentDetailPage() {
 
   return (
     <PageContainer>
-      <section className="py-10 max-w-3xl">
+      <section className="py-6 md:py-10">
         {isLoading ? (
           <div className="animate-pulse space-y-3">
             <div className="h-4 w-1/4 rounded-sm bg-border" />
@@ -49,17 +51,18 @@ export default function PublicIncidentDetailPage() {
           </div>
         ) : (
           <>
-            <p className="text-sm text-text-muted">{incident.incident_number}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="min-w-0 break-words text-[26px] font-semibold md:text-[32px]">{incident.title}</h1>
-              <IncidentStatusBadge status={incident.status} />
-            </div>
-            <p className="mt-2 text-text-secondary">
-              {formatLocationLabel(incident.location)}
-            </p>
-            <p className="text-sm text-text-secondary">{incident.category.name}</p>
-
-            <div className="mt-8 space-y-6 border-t border-border pt-8">
+            <IncidentDetailHeader
+              backHref="/incidents"
+              backLabel="Back to public incidents"
+              incidentNumber={incident.incident_number}
+              title={incident.title}
+              status={incident.status}
+              location={incident.location}
+              category={incident.category}
+              showPriority={false}
+            />
+            <DetailJumpLinks messages={false} />
+            <div className="public-detail-layout"><div className="space-y-6">
               <div>
                 <h2 className="text-[18px] font-semibold mb-2">Description</h2>
                 <p className="break-words text-text-secondary whitespace-pre-wrap">
@@ -70,20 +73,15 @@ export default function PublicIncidentDetailPage() {
               {incident.images.length > 0 ? (
                 <div>
                   <h2 className="text-[18px] font-semibold mb-2">Incident photo</h2>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={incident.images[0].cloudinary_url}
-                    alt={`Photo related to ${incident.title}`}
-                    className="max-h-96 w-full rounded-lg border border-border object-contain"
-                  />
+                  <IncidentEvidence images={incident.images} title={incident.title} />
                 </div>
               ) : null}
 
-              <IncidentTimeline incident={incident} />
+
 
               <p className="text-sm text-text-muted">
                 Reported on {formatDate(incident.created_at)}
-              </p>
+              </p></div><IncidentTimeline incident={incident} />
             </div>
           </>
         )}

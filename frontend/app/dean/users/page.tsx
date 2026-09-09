@@ -40,6 +40,7 @@ const emptyForm: OfficialFormState = {
 };
 
 function DeanUsersContent() {
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [officials, setOfficials] = useState<OfficialAccount[]>([]);
   const [form, setForm] = useState<OfficialFormState>(emptyForm);
   const [error, setError] = useState("");
@@ -111,7 +112,7 @@ function DeanUsersContent() {
     <section className="py-10">
       <Link
         href="/dean/dashboard"
-        className="text-sm font-medium text-primary hover:text-primary-dark"
+        className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:text-primary-dark"
       >
         Back to overview
       </Link>
@@ -121,10 +122,16 @@ function DeanUsersContent() {
         Create and manage official accounts. Officials activate their own passwords by email.
       </p>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <Button className="account-toggle w-full sm:w-auto" aria-expanded={showCreateForm} aria-controls="create-official-form" onClick={() => setShowCreateForm(open => !open)}>
+        {showCreateForm ? "Hide account form" : "Create official account"}
+      </Button>
+      {error && !showCreateForm ? <p role="alert" className="mb-4 text-danger">{error}</p> : null}
+      <div className={showCreateForm ? "official-accounts-layout with-form" : "official-accounts-layout"}>
+        {showCreateForm ? (
         <form
+          id="create-official-form"
           onSubmit={handleSubmit}
-          className="order-1 border border-border bg-surface p-4 md:p-6 lg:order-2"
+          className="min-w-0 border border-border bg-surface p-4 md:p-6"
         >
           <h2 className="text-[18px] font-semibold mb-4">Create official account</h2>
 
@@ -199,9 +206,9 @@ function DeanUsersContent() {
           >
             Create account
           </Button>
-        </form>
+        </form>) : null}
 
-        <div className="order-2 border border-border bg-surface lg:order-1">
+        <div className="official-list incident-table min-w-0 border border-border bg-surface">
           <div className="border-b border-border px-4 py-4 md:px-6">
             <h2 className="text-[18px] font-semibold">Officials</h2>
           </div>
@@ -213,12 +220,12 @@ function DeanUsersContent() {
             <div className="px-4 py-8 md:px-6">
               <p className="font-medium">No official accounts yet.</p>
               <p className="mt-1 text-sm text-text-secondary">
-                Use the form to invite your first official.
+                Select “Create official account” to invite your first official.
               </p>
             </div>
           ) : (
             <>
-              <div className="divide-y divide-border md:hidden">
+              <div className="incident-table-records divide-y divide-border">
                 {officials.map((official) => (
                   <div key={official.id} className="px-4 py-4">
                     <p className="font-medium">{official.name}</p>
@@ -250,7 +257,7 @@ function DeanUsersContent() {
                 ))}
               </div>
 
-              <div className="hidden overflow-x-auto md:block">
+              <div className="incident-table-grid">
                 <table className="w-full min-w-[640px] text-left text-sm">
                   <thead className="border-b border-border text-text-muted">
                     <tr>

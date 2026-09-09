@@ -105,8 +105,8 @@ export function IncidentForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full" noValidate>
-      <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:gap-8">
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:gap-8">
         <section className="rounded-lg border border-border bg-surface p-4 md:p-6">
           <h2 className="mb-1 text-[18px] font-semibold">Incident details</h2>
           <p className="mb-5 text-sm text-text-muted">
@@ -124,7 +124,7 @@ export function IncidentForm() {
             />
           </FormField>
 
-          <div className="grid md:grid-cols-2 md:gap-4">
+          <div className="grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-1 xl:grid-cols-2">
             <FormField label="Category" htmlFor="category" required error={errors.category}>
               <Select
                 id="category"
@@ -169,7 +169,7 @@ export function IncidentForm() {
               required
               placeholder={placeholders.incidentDescription}
               hasError={Boolean(errors.description)}
-              className="min-h-32 resize-none md:min-h-48"
+              className="min-h-32 resize-y md:min-h-48"
             />
           </FormField>
         </section>
@@ -241,7 +241,7 @@ export function IncidentForm() {
       </div>
 
       {formError ? (
-        <p className="mt-6 rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+        <p role="alert" className="mt-6 rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
           {formError}
         </p>
       ) : null}

@@ -75,7 +75,7 @@ export function ImageUpload({ file, onChange, error }: ImageUploadProps) {
             </Button>
           </div>
         ) : (
-          <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 py-6 text-center md:min-h-40">
+          <label className="upload-target flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 py-6 text-center md:min-h-40">
             <span className="text-sm font-medium text-foreground">Choose a photo</span>
             <span className="text-sm text-text-muted">JPEG, PNG, or WebP up to 5 MB</span>
             <input
@@ -92,7 +92,7 @@ export function ImageUpload({ file, onChange, error }: ImageUploadProps) {
         )}
       </div>
       {localError || error ? (
-        <p className="mt-2 text-sm text-danger">{localError || error}</p>
+        <p role="alert" className="mt-2 text-sm text-danger">{localError || error}</p>
       ) : null}
     </div>
   );

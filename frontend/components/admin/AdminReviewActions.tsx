@@ -86,7 +86,7 @@ export function AdminReviewActions({ incident, onUpdated }: AdminReviewActionsPr
             onChange={(event) => setVerifyComment(event.target.value)}
             rows={3}
             placeholder={placeholders.verificationNote}
-            className="resize-none"
+            className="resize-y"
           />
         </FormField>
 
@@ -110,10 +110,10 @@ export function AdminReviewActions({ incident, onUpdated }: AdminReviewActionsPr
                 rows={4}
                 required
                 placeholder={placeholders.rejectionReason}
-                className="resize-none"
+                className="resize-y"
               />
             </FormField>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="form-actions">
               <Button
                 type="button"
                 variant="danger"
@@ -150,10 +150,10 @@ export function AdminReviewActions({ incident, onUpdated }: AdminReviewActionsPr
                 rows={4}
                 required
                 placeholder={placeholders.infoRequest}
-                className="resize-none"
+                className="resize-y"
               />
             </FormField>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="form-actions">
               <Button
                 type="button"
                 className="min-h-11 w-full sm:w-auto"

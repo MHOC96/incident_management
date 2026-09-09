@@ -1,29 +1,30 @@
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageBanner } from "@/components/layout/PageBanner";
+
+const steps = [
+  ["Submit", "Describe the incident, provide its location, and add evidence if available."],
+  ["Review", "An administrator reviews and verifies the report."],
+  ["Assign", "The Dean assigns a responsible official."],
+  ["Resolve", "The official updates progress and reports the resolution."],
+  ["Close", "The Dean reviews the resolution and closes the incident."],
+];
 
 export default function AboutPage() {
   return (
-    <PageContainer>
-      <section className="py-10 max-w-2xl md:py-12">
-        <p className="font-serif text-sm text-text-secondary mb-2">
-          University of Sri Jayewardenepura
-        </p>
-        <h1 className="mb-4 text-[26px] font-semibold md:text-[32px]">About this system</h1>
-        <div className="space-y-4 text-text-secondary">
-          <p>
-            This system supports incident reporting and resolution for the Faculty of
-            Management Studies and Commerce.
-          </p>
-          <p>
-            Students may register to report and track incidents. University officials
-            access the system through Dean-issued invitations. Public users may browse
-            verified public incidents without an account.
-          </p>
-          <p>
-            Reports follow a controlled process: student submission, administrative
-            verification, Dean assignment, official resolution, and Dean closure.
-          </p>
-        </div>
+    <>
+      <PageBanner title="About the service" />
+      <section className="site-width service-description">
+        <h2>Reporting and resolution</h2>
+        <p>This system manages incident reports for the Faculty of Management Studies and Commerce.</p>
+        <ol className="workflow-list">
+          {steps.map(([title, description], index) => (
+            <li key={title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div><h3>{title}</h3><p>{description}</p></div>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-6">Verified public incidents are visible to everyone. Private and restricted reports are available only to authorized users.</p>
       </section>
-    </PageContainer>
+    </>
   );
 }

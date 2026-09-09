@@ -1,26 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import { Open_Sans, Poppins } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const openSans = Open_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
+const poppins = Poppins({
+  variable: "--font-heading",
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "USJ Incident Reporting System",
   description:
     "University of Sri Jayewardenepura incident reporting and resolution management system.",
+  icons: {
+    icon: "/sjp-favicon.png",
+    apple: "/sjp-favicon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${sourceSerif.variable} h-full antialiased`}
+      className={`${openSans.variable} ${poppins.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col bg-background text-foreground">

@@ -34,7 +34,7 @@ export function FormField({
   });
 
   return (
-    <div className="mb-4">
+    <div className="form-field mb-5">
       <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-foreground">
         {label}
         {required ? <span className="text-danger"> *</span> : null}

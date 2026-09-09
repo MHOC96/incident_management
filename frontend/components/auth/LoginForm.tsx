@@ -39,7 +39,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-2">
       <FormField label="Email" htmlFor="email" required error={errors.email}>
         <Input
           id="email"

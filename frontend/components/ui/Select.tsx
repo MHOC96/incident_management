@@ -7,7 +7,7 @@ type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
 export function Select({ hasError = false, className = "", children, ...props }: SelectProps) {
   return (
     <select
-      className={`h-11 w-full min-w-0 appearance-none rounded-md border bg-surface px-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+      className={`h-11 w-full min-w-0 rounded-[2px] border bg-surface px-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
         hasError ? "border-danger" : "border-border"
       } ${className}`}
       {...props}

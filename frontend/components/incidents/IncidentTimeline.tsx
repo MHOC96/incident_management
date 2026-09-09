@@ -91,7 +91,7 @@ export function IncidentTimeline({ incident }: IncidentTimelineProps) {
   const events = buildTimelineEvents(incident);
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
+    <div id="incident-timeline" tabIndex={-1} className="incident-timeline rounded-lg border border-border bg-surface p-4 md:p-6">
       <h2 className="text-[18px] font-semibold mb-4">Incident timeline</h2>
       {events.length === 0 ? (
         <p className="text-sm text-text-secondary">No progress recorded yet.</p>

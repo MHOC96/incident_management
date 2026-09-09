@@ -2568,3 +2568,13 @@ The following rules must remain true unless the project requirements explicitly 
 ---
 
 # END OF AGENTS.md
+## Visual reference update — 8 September 2026
+
+The current user request is to redesign the frontend to match https://www.sjp.ac.lk/.
+Follow the current visual specification at the beginning of DESIGN.md for the
+reference colors, typography, masthead, page layouts, and footer. This supersedes
+older conflicting appearance examples only; application behavior and security
+requirements above remain unchanged.
+
+The university reference is visual only: do not copy university services, resource
+links, contact details, or promotional content into the incident system.

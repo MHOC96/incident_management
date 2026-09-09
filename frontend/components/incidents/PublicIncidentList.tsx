@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PublicIncidentRow } from "@/components/incidents/PublicIncidentRow";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { incidentService, referenceService } from "@/services/incidents";
@@ -13,6 +14,7 @@ type PublicIncidentListProps = {
 };
 
 export function PublicIncidentList({ limit }: PublicIncidentListProps) {
+  const [retryCount, setRetryCount] = useState(0);
   const [incidents, setIncidents] = useState<PublicIncident[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [query, setQuery] = useState("");
@@ -42,7 +44,7 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
         setIsLoading(false);
       }
     })();
-  }, [limit]);
+  }, [limit, retryCount]);
 
   const locations = useMemo(() => {
     const unique = new Map<number, Location>();
@@ -59,7 +61,9 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
     const matchesSearch =
       !search ||
       incident.incident_number.toLowerCase().includes(search) ||
-      incident.title.toLowerCase().includes(search);
+      incident.title.toLowerCase().includes(search) ||
+      incident.category.name.toLowerCase().includes(search) ||
+      incident.location.name.toLowerCase().includes(search);
     const matchesCategory = !categoryId || String(incident.category.id) === categoryId;
     const matchesLocation = !locationId || String(incident.location.id) === locationId;
     return matchesSearch && matchesCategory && matchesLocation;
@@ -80,7 +84,8 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
   if (error) {
     return (
       <div role="alert" className="border border-danger/20 bg-danger/5 px-6 py-8 text-sm text-danger">
-        {error}
+        <p>{error}</p>
+        <Button className="mt-4 w-full sm:w-auto" variant="secondary" onClick={() => { setError(""); setIsLoading(true); setRetryCount(count => count + 1); }}>Try again</Button>
       </div>
     );
   }
@@ -89,6 +94,8 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
     <div>
       {limit ? null : (
         <div className="mb-6 grid gap-3 md:grid-cols-3">
+          <label className="block text-sm font-semibold text-foreground">
+          <span className="mb-2 block">Search incidents</span>
           <Input
             type="search"
             value={query}
@@ -96,6 +103,9 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
             placeholder={placeholders.searchIncidents}
             aria-label="Search by incident ID or title"
           />
+          </label>
+          <label className="block text-sm font-semibold text-foreground">
+          <span className="mb-2 block">Category</span>
           <Select
             value={categoryId}
             onChange={(event) => setCategoryId(event.target.value)}
@@ -108,6 +118,9 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
               </option>
             ))}
           </Select>
+          </label>
+          <label className="block text-sm font-semibold text-foreground">
+          <span className="mb-2 block">Location</span>
           <Select
             value={locationId}
             onChange={(event) => setLocationId(event.target.value)}
@@ -120,9 +133,16 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
               </option>
             ))}
           </Select>
+          </label>
         </div>
       )}
 
+      {!limit && (query || categoryId || locationId) ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p role="status" className="text-sm text-text-secondary">{visible.length} matching {visible.length === 1 ? "incident" : "incidents"}</p>
+          <Button variant="ghost" onClick={() => { setQuery(""); setCategoryId(""); setLocationId(""); }}>Clear filters</Button>
+        </div>
+      ) : null}
       {visible.length === 0 ? (
         <p className="border-t border-border py-8 text-text-secondary">
           {query || categoryId || locationId

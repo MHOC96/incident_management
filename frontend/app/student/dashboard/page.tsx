@@ -58,9 +58,12 @@ function StudentDashboardContent() {
     <PageContainer width="app">
       <section className="py-8 md:py-10">
         <h1 className="mb-2 text-[26px] font-semibold md:text-[32px]">
-          Good morning, {user?.name.split(" ")[0]}
+          My reports
         </h1>
-        <p className="text-text-secondary mb-8">Your reported incidents</p>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-text-secondary">Reports submitted by {user?.name}.</p>
+          <LinkButton href="/student/incidents/new" className="w-full sm:w-auto">Report an incident</LinkButton>
+        </div>
 
         {isLoading ? (
           <div className="animate-pulse space-y-4">
@@ -93,9 +96,7 @@ function StudentDashboardContent() {
               <div className="border border-border bg-surface">
                 <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
                   <h2 className="text-[18px] font-semibold">Recent reports</h2>
-                  <LinkButton href="/student/incidents/new" className="w-full sm:w-auto">
-                    Report new incident
-                  </LinkButton>
+
                 </div>
                 <IncidentTable
                   rows={incidents.map((incident) => ({

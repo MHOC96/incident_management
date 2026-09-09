@@ -1,4 +1,6 @@
 "use client";
+import { DetailJumpLinks } from "@/components/incidents/DetailJumpLinks";
+
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -120,8 +122,8 @@ function DeanIncidentDetailContent() {
         summary={summary}
       />
 
-      <div className="mt-6 grid gap-5 lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-6">
-        <div className="order-2 min-w-0 space-y-5 lg:order-1 lg:space-y-6">
+      <DetailJumpLinks actions /><div className="detail-layout">
+        <div className="detail-body">
           <IncidentSection title="Description">
             <p className="break-words whitespace-pre-wrap text-text-secondary">
               {incident.description}
@@ -148,7 +150,7 @@ function DeanIncidentDetailContent() {
           <IncidentMessages incidentId={incident.id} allowInternal />
         </div>
 
-        <aside className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-[88px]">
+        <aside id="incident-actions" tabIndex={-1} className="detail-actions">
           <DeanAssignPanel incident={incident} onUpdated={setIncident} />
         </aside>
       </div>

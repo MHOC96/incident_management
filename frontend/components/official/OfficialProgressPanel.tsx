@@ -70,7 +70,7 @@ export function OfficialProgressPanel({
       <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
         <h2 className="text-[18px] font-semibold mb-2">Work complete</h2>
         <p className="text-sm text-text-secondary">
-          This incident has been marked as resolved and is awaiting dean review.
+          {incident.status === "CLOSED" ? "The Dean has reviewed the resolution and closed this incident." : "This incident has been marked as resolved and is awaiting Dean review."}
         </p>
       </div>
     );
@@ -121,8 +121,8 @@ export function OfficialProgressPanel({
                   placeholder={placeholders.resolutionStatement}
                 />
               </FormField>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="button" isLoading={isSubmitting} loadingText="Confirming resolution..." onClick={handleResolve}>
+              <div className="form-actions">
+                <Button type="button" disabled={!resolveComment.trim()} isLoading={isSubmitting} loadingText="Confirming resolution..." onClick={handleResolve}>
                   Confirm resolution
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setShowResolve(false)}>
