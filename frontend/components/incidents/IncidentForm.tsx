@@ -132,6 +132,8 @@ export function IncidentForm() {
                 onChange={(event) => updateField("category", event.target.value)}
                 hasError={Boolean(errors.category)}
                 required
+                searchable
+                searchPlaceholder="Search categories..."
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (

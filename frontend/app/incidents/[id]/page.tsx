@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { IncidentDetailHeader } from "@/components/incidents/IncidentDetailHeader";
 import { IncidentEvidence } from "@/components/incidents/IncidentEvidence";
-import { DetailJumpLinks } from "@/components/incidents/DetailJumpLinks";
 import { IncidentTimeline } from "@/components/incidents/IncidentTimeline";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { formatDate } from "@/lib/format";
@@ -33,7 +32,7 @@ export default function PublicIncidentDetailPage() {
 
   return (
     <PageContainer>
-      <section className="py-6 md:py-10">
+      <section className="mx-auto max-w-[960px] py-6 md:py-8">
         {isLoading ? (
           <div className="animate-pulse space-y-3">
             <div className="h-4 w-1/4 rounded-sm bg-border" />
@@ -61,39 +60,28 @@ export default function PublicIncidentDetailPage() {
               category={incident.category}
               showPriority={false}
             />
-            <DetailJumpLinks messages={false} />
-            <div className="public-detail-layout"><div className="space-y-6">
+            <div className="public-detail-layout"><div className="public-incident-summary">
               <div>
                 <h2 className="text-[18px] font-semibold mb-2">Description</h2>
                 <p className="break-words text-text-secondary whitespace-pre-wrap">
                   {incident.description}
                 </p>
+                <p className="mt-4 text-sm text-text-muted">
+                  Reported on {formatDate(incident.created_at)}
+                </p>
               </div>
 
               {incident.images.length > 0 ? (
-                <div>
+                <div className="public-incident-photos">
                   <h2 className="text-[18px] font-semibold mb-2">Incident photo</h2>
                   <IncidentEvidence images={incident.images} title={incident.title} />
                 </div>
               ) : null}
-
-
-
-              <p className="text-sm text-text-muted">
-                Reported on {formatDate(incident.created_at)}
-              </p></div><IncidentTimeline incident={incident} />
+              </div><IncidentTimeline incident={incident} />
             </div>
           </>
         )}
 
-        {incident ? (
-          <Link
-            href="/incidents"
-            className="mt-8 inline-flex text-sm font-medium text-primary hover:text-primary-dark"
-          >
-            Back to public incidents
-          </Link>
-        ) : null}
       </section>
     </PageContainer>
   );

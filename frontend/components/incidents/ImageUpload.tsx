@@ -63,7 +63,7 @@ export function ImageUpload({ file, onChange, error }: ImageUploadProps) {
             <img
               src={previewUrl}
               alt="Incident evidence preview"
-              className="max-h-64 w-full rounded-md border border-border object-contain"
+              className="block h-auto w-auto max-h-64 max-w-full rounded-md border border-border"
             />
             <p className="break-all text-sm text-text-secondary">{file?.name}</p>
             <Button

@@ -177,6 +177,7 @@ function DeanUsersContent() {
                 setForm({ ...form, position: event.target.value as OfficialPosition | "" })
               }
               required
+              searchPlaceholder="Search positions..."
             >
               <option value="">Select position</option>
               {positions.map((position) => (

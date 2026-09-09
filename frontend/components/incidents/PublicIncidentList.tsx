@@ -64,8 +64,10 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
       incident.title.toLowerCase().includes(search) ||
       incident.category.name.toLowerCase().includes(search) ||
       incident.location.name.toLowerCase().includes(search);
-    const matchesCategory = !categoryId || String(incident.category.id) === categoryId;
-    const matchesLocation = !locationId || String(incident.location.id) === locationId;
+    const matchesCategory =
+      !categoryId || String(incident.category.id) === String(categoryId);
+    const matchesLocation =
+      !locationId || String(incident.location.id) === String(locationId);
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
@@ -110,10 +112,12 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
             value={categoryId}
             onChange={(event) => setCategoryId(event.target.value)}
             aria-label="Filter by category"
+            searchable
+            searchPlaceholder="Search categories..."
           >
             <option value="">All categories</option>
             {categories.map((category) => (
-              <option key={category.id} value={category.id}>
+              <option key={category.id} value={String(category.id)}>
                 {category.name}
               </option>
             ))}
@@ -125,10 +129,12 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
             value={locationId}
             onChange={(event) => setLocationId(event.target.value)}
             aria-label="Filter by location"
+            searchable
+            searchPlaceholder="Search locations..."
           >
             <option value="">All locations</option>
             {locations.map((location) => (
-              <option key={location.id} value={location.id}>
+              <option key={location.id} value={String(location.id)}>
                 {location.name}
               </option>
             ))}

@@ -8,3 +8,4 @@ dj-database-url>=2.1,<4.0
 Pillow>=10.0,<13.0
 cloudinary>=1.36,<2.0
 django-filter>=24.0,<27.0
+gunicorn>=22.0,<24.0

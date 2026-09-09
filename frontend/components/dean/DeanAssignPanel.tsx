@@ -171,6 +171,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
                 value={assignedOfficial}
                 onChange={(event) => setAssignedOfficial(event.target.value)}
                 required
+                searchPlaceholder="Search officials..."
               >
                 <option value="">Select official</option>
                 {officials.map((official) => (
@@ -185,6 +186,7 @@ export function DeanAssignPanel({ incident, onUpdated }: DeanAssignPanelProps) {
                 id="party"
                 value={responsibleParty}
                 onChange={(event) => setResponsibleParty(event.target.value)}
+                searchPlaceholder="Search responsible parties..."
               >
                 <option value="">Optional</option>
                 {parties.map((party) => (
