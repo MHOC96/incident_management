@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 
-from apps.common.choices import AccountStatus, NotificationType, UserRole
+from apps.common.choices import AccountStatus, MessageChannel, NotificationType, UserRole
+from apps.communications.channel_access import channel_recipient_ids
 from apps.notifications.models import Notification
 
 User = get_user_model()
@@ -32,17 +33,8 @@ def notify_admins_of_submission(incident):
     )
 
 
-def notify_message_participants(*, incident, sender, content, is_internal=False):
-    recipient_ids = set()
-
-    if not is_internal and incident.reporter_id != sender.id:
-        recipient_ids.add(incident.reporter_id)
-
-    assignment = incident.assignments.filter(is_current=True).only(
-        "assigned_official_id"
-    ).first()
-    if assignment and assignment.assigned_official_id != sender.id:
-        recipient_ids.add(assignment.assigned_official_id)
+def notify_message_participants(*, incident, sender, content, channel, is_internal=False):
+    recipient_ids = channel_recipient_ids(incident, channel, sender.id)
 
     if not recipient_ids:
         return

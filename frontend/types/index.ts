@@ -197,12 +197,19 @@ export type OfficialStats = {
   total_assigned: number;
 };
 
+export type MessageChannel =
+  | "STUDENT_ADMIN"
+  | "STUDENT_DEAN"
+  | "STUDENT_OFFICIAL"
+  | "STAFF_INTERNAL";
+
 export type IncidentMessage = {
   id: number;
   incident: number;
   sender: number;
   sender_name: string;
   sender_role: UserRole;
+  channel: MessageChannel;
   content: string;
   is_internal: boolean;
   created_at: string;

@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from apps.common.choices import MessageChannel
+
 
 class Message(models.Model):
     incident = models.ForeignKey(
@@ -14,6 +16,11 @@ class Message(models.Model):
         related_name="incident_messages",
     )
     content = models.TextField()
+    channel = models.CharField(
+        max_length=30,
+        choices=MessageChannel.choices,
+        default=MessageChannel.STUDENT_ADMIN,
+    )
     is_internal = models.BooleanField(
         default=False,
         help_text="Internal messages are not visible on public incident views.",

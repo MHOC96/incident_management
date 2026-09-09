@@ -147,7 +147,11 @@ function DeanIncidentDetailContent() {
           </IncidentSection>
 
           <IncidentTimeline incident={incident} />
-          <IncidentMessages incidentId={incident.id} allowInternal />
+          <IncidentMessages
+            incidentId={incident.id}
+            incidentStatus={incident.status}
+            hasAssignedOfficial={Boolean(incident.current_assignment)}
+          />
         </div>
 
         <aside id="incident-actions" tabIndex={-1} className="detail-actions">

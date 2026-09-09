@@ -169,6 +169,8 @@ function StudentIncidentDetailContent() {
           <div className="order-4 lg:col-start-1 lg:row-start-2">
             <IncidentMessages
               incidentId={incident.id}
+              incidentStatus={incident.status}
+              hasAssignedOfficial={Boolean(incident.current_assignment)}
               readOnly={!canMessage}
             />
           </div>

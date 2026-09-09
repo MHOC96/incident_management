@@ -96,7 +96,11 @@ function OfficialIncidentDetailContent() {
           </div>
 
           <IncidentTimeline incident={incident} />
-          <IncidentMessages incidentId={incident.id} />
+          <IncidentMessages
+            incidentId={incident.id}
+            incidentStatus={incident.status}
+            hasAssignedOfficial={Boolean(incident.current_assignment)}
+          />
         </div>
 
         <div id="incident-actions" tabIndex={-1} className="detail-actions">

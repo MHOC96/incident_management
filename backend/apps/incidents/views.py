@@ -24,7 +24,7 @@ from apps.common.authorization import (
     user_can_start_progress_incident,
     user_can_verify_incident,
 )
-from apps.common.choices import IncidentStatus, NotificationType, UserRole
+from apps.common.choices import IncidentStatus, MessageChannel, NotificationType, UserRole
 from apps.common.permissions import IsActiveUser, IsAdmin, IsDean, IsOfficial, IsStaffRole, IsStudent
 from apps.communications.models import Message
 from apps.incidents.cloudinary_service import upload_incident_image
@@ -208,14 +208,36 @@ class IncidentViewSet(viewsets.ModelViewSet):
             related_incident=incident,
         )
 
-    def _add_review_message(self, incident, sender, content, *, is_internal=False):
-        if content.strip():
-            Message.objects.create(
-                incident=incident,
-                sender=sender,
-                content=content.strip(),
-                is_internal=is_internal,
-            )
+    def _add_review_message(
+        self,
+        incident,
+        sender,
+        content,
+        *,
+        is_internal=False,
+        channel=None,
+    ):
+        if not content.strip():
+            return
+
+        resolved_channel = channel
+        if resolved_channel is None:
+            if sender.role == UserRole.ADMIN:
+                resolved_channel = MessageChannel.STUDENT_ADMIN
+            elif sender.role == UserRole.DEAN:
+                resolved_channel = MessageChannel.STUDENT_DEAN
+            elif sender.role == UserRole.OFFICIAL:
+                resolved_channel = MessageChannel.STUDENT_OFFICIAL
+            else:
+                resolved_channel = MessageChannel.STUDENT_ADMIN
+
+        Message.objects.create(
+            incident=incident,
+            sender=sender,
+            content=content.strip(),
+            channel=resolved_channel,
+            is_internal=False,
+        )
 
     @action(detail=False, methods=["get"], url_path="official-stats")
     def official_stats(self, request):
@@ -438,7 +460,7 @@ class IncidentViewSet(viewsets.ModelViewSet):
         except InvalidStatusTransitionError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        self._add_review_message(incident, request.user, comment, is_internal=True)
+        self._add_review_message(incident, request.user, comment)
         self._notify_reporter(
             incident,
             title="Incident verified",
@@ -528,7 +550,7 @@ class IncidentViewSet(viewsets.ModelViewSet):
                 incident,
                 request.user,
                 data["comment"],
-                is_internal=False,
+                channel=MessageChannel.STUDENT_OFFICIAL,
             )
 
         incident.refresh_from_db()
@@ -550,7 +572,12 @@ class IncidentViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if comment:
-            self._add_review_message(incident, request.user, comment, is_internal=False)
+            self._add_review_message(
+                incident,
+                request.user,
+                comment,
+                channel=MessageChannel.STUDENT_OFFICIAL,
+            )
 
         incident.refresh_from_db()
         return Response(IncidentOfficialDetailSerializer(incident).data)
@@ -570,7 +597,12 @@ class IncidentViewSet(viewsets.ModelViewSet):
         except InvalidStatusTransitionError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        self._add_review_message(incident, request.user, comment, is_internal=False)
+        self._add_review_message(
+            incident,
+            request.user,
+            comment,
+            channel=MessageChannel.STUDENT_OFFICIAL,
+        )
 
         incident.refresh_from_db()
         return Response(IncidentOfficialDetailSerializer(incident).data)
@@ -591,47 +623,11 @@ class IncidentViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if comment:
-            self._add_review_message(incident, request.user, comment, is_internal=False)
-
-        incident.refresh_from_db()
-        return Response(IncidentDeanDetailSerializer(incident).data)
-
-    @action(detail=True, methods=["post"], url_path="reopen", permission_classes=[IsDean])
-    def reopen(self, request, pk=None):
-        incident = self.get_object()
-        if not user_can_reopen_incident(request.user, incident):
-            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
-
-        serializer = IncidentActionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        comment = serializer.validated_data.get("comment", "")
-
-        try:
-            transition_incident(incident, IncidentStatus.IN_PROGRESS)
-        except InvalidStatusTransitionError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        if comment:
-            self._add_review_message(incident, request.user, comment, is_internal=False)
-
-        Notification.objects.create(
-            user=incident.reporter,
-            title="Incident returned for additional work",
-            message=f"Incident {incident.incident_number} requires further action.",
-            notification_type=NotificationType.INCIDENT_STATUS_CHANGED,
-            related_incident=incident,
-        )
-
-        assignment = incident.assignments.filter(is_current=True).select_related(
-            "assigned_official"
-        ).first()
-        if assignment:
-            Notification.objects.create(
-                user=assignment.assigned_official,
-                title="Incident returned for additional work",
-                message=f"Please continue work on {incident.incident_number}.",
-                notification_type=NotificationType.INCIDENT_STATUS_CHANGED,
-                related_incident=incident,
+            self._add_review_message(
+                incident,
+                request.user,
+                comment,
+                channel=MessageChannel.STUDENT_DEAN,
             )
 
         incident.refresh_from_db()
@@ -653,7 +649,12 @@ class IncidentViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if comment:
-            self._add_review_message(incident, request.user, comment, is_internal=False)
+            self._add_review_message(
+                incident,
+                request.user,
+                comment,
+                channel=MessageChannel.STUDENT_DEAN,
+            )
 
         Notification.objects.create(
             user=incident.reporter,

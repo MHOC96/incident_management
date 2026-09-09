@@ -106,7 +106,8 @@ function AdminIncidentReviewContent() {
 
           <IncidentMessages
             incidentId={incident.id}
-            allowInternal
+            incidentStatus={incident.status}
+            hasAssignedOfficial={Boolean(incident.current_assignment)}
             readOnly={isReviewComplete}
           />
         </div>

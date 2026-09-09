@@ -1,15 +1,15 @@
 import { apiClient } from "@/lib/api";
-import type { IncidentMessage, PaginatedResponse } from "@/types";
+import type { IncidentMessage, MessageChannel, PaginatedResponse } from "@/types";
 
 export const messageService = {
-  list: (incidentId: number) =>
+  list: (incidentId: number, channel: MessageChannel) =>
     apiClient.get<PaginatedResponse<IncidentMessage>>(
-      `/incidents/${incidentId}/messages/`,
+      `/incidents/${incidentId}/messages/?channel=${channel}`,
     ),
 
-  create: (incidentId: number, content: string, isInternal = false) =>
+  create: (incidentId: number, content: string, channel: MessageChannel) =>
     apiClient.post<IncidentMessage>(`/incidents/${incidentId}/messages/`, {
       content,
-      is_internal: isInternal,
+      channel,
     }),
 };
