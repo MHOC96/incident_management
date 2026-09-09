@@ -1,6 +1,13 @@
 import type { ApiError, AuthTokens } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+function normalizeApiUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  return trimmed.replace(/([^:]\/)\/+/g, "$1");
+}
+
+const API_URL = normalizeApiUrl(
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api",
+);
 
 type RequestOptions = RequestInit & {
   auth?: boolean;

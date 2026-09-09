@@ -160,6 +160,30 @@ class NotificationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 1)
 
+    def test_mark_all_notifications_read(self):
+        Notification.objects.create(
+            user=self.student,
+            title="Unread one",
+            message="First unread message",
+            notification_type=NotificationType.NEW_MESSAGE,
+            related_incident=self.incident,
+        )
+        Notification.objects.create(
+            user=self.student,
+            title="Unread two",
+            message="Second unread message",
+            notification_type=NotificationType.INCIDENT_STATUS_CHANGED,
+            related_incident=self.incident,
+        )
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post("/api/notifications/mark-all-read/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["updated"], 2)
+        self.assertEqual(
+            Notification.objects.filter(user=self.student, is_read=False).count(),
+            0,
+        )
+
     def test_dean_can_reopen_resolved_incident(self):
         self.incident.status = IncidentStatus.FORWARDED_TO_DEAN
         self.incident.save(update_fields=["status", "updated_at"])

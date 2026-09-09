@@ -10,7 +10,7 @@ from apps.notifications.serializers import NotificationMarkReadSerializer, Notif
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [IsActiveUser]
-    http_method_names = ["get", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
         queryset = Notification.objects.filter(user=self.request.user).select_related(

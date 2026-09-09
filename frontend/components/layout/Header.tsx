@@ -17,9 +17,13 @@ export function Header() {
   const [openPath, setOpenPath] = useState<string | null>(null);
   const menuOpen = openPath === pathname;
   const navItems = [
-    { href: "/", label: "Home" },
+    ...(!isAuthenticated
+      ? [
+          { href: "/", label: "Home" },
+          { href: "/about", label: "About the service" },
+        ]
+      : []),
     { href: "/incidents", label: "Public incidents" },
-    { href: "/about", label: "About the service" },
     ...(isAuthenticated && user
       ? [{ href: getDashboardRoute(user.role), label: getDashboardLabel(user.role) },
         ...(user.role === "DEAN" ? [{ href: "/dean/users", label: "Official accounts" }] : []),
