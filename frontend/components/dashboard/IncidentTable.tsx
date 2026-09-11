@@ -27,6 +27,7 @@ type IncidentTableProps = {
   showReporter?: boolean;
   showCategory?: boolean;
   showAssigned?: boolean;
+  showIncidentNumber?: boolean;
 };
 
 export function IncidentTable({
@@ -38,6 +39,7 @@ export function IncidentTable({
   showReporter = false,
   showCategory = false,
   showAssigned = false,
+  showIncidentNumber = true,
 }: IncidentTableProps) {
   if (rows.length === 0) {
     return (
@@ -55,11 +57,13 @@ export function IncidentTable({
           <Link
             key={row.id}
             href={row.href}
-            aria-label={`Review ${row.incident_number}: ${row.title}`}
+            aria-label={`View report: ${row.title}`}
             className="block px-4 py-4 no-underline hover:bg-surface-hover/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
           >
-            <p className="text-xs text-text-muted">{row.incident_number}</p>
-            <p className="mt-1 font-medium text-foreground">{row.title}</p>
+            {showIncidentNumber ? (
+              <p className="text-xs text-text-muted">{row.incident_number}</p>
+            ) : null}
+            <p className={`font-medium text-foreground ${showIncidentNumber ? "mt-1" : ""}`}>{row.title}</p>
             <p className="mt-1 text-sm text-text-secondary">
               {row.location ? formatLocationLabel(row.location) : "Not specified"}
             </p>
@@ -88,10 +92,12 @@ export function IncidentTable({
       </div>
 
       <div className="incident-table-grid">
-          <table className={`w-full text-left text-sm ${showAssigned ? "min-w-[760px]" : "min-w-[640px]"}`}>
+          <table className={`w-full text-left text-sm ${showAssigned ? "min-w-[760px]" : showIncidentNumber ? "min-w-[640px]" : "min-w-[520px]"}`}>
           <thead className="border-b border-border text-text-muted">
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium">Incident ID</th>
+              {showIncidentNumber ? (
+                <th scope="col" className="px-4 py-3 font-medium">Incident ID</th>
+              ) : null}
               <th scope="col" className="px-4 py-3 font-medium">Title</th>
               {showReporter ? <th scope="col" className="px-4 py-3 font-medium">Reporter</th> : null}
               {showCategory ? <th scope="col" className="px-4 py-3 font-medium">Category</th> : null}
@@ -108,7 +114,9 @@ export function IncidentTable({
                 key={row.id}
                 className="border-b border-border last:border-b-0 hover:bg-surface-hover/60"
               >
-                <td className="px-4 py-4 text-text-muted">{row.incident_number}</td>
+                {showIncidentNumber ? (
+                  <td className="px-4 py-4 text-text-muted">{row.incident_number}</td>
+                ) : null}
                 <td className="px-4 py-4">
                   <Link href={row.href} className="inline-flex min-h-11 items-center font-medium text-foreground hover:text-primary">
                     {row.title}

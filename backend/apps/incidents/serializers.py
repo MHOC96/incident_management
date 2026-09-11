@@ -62,6 +62,8 @@ class PublicIncidentSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     location = LocationSerializer(read_only=True)
     images = IncidentImageSerializer(many=True, read_only=True)
+    vote_count = serializers.IntegerField(read_only=True)
+    user_has_upvoted = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Incident
@@ -76,6 +78,8 @@ class PublicIncidentSerializer(serializers.ModelSerializer):
             "priority",
             "visibility",
             "images",
+            "vote_count",
+            "user_has_upvoted",
             "created_at",
             "updated_at",
             "verified_at",

@@ -127,3 +127,35 @@ class IncidentImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.incident.incident_number}"
+
+
+class IncidentVote(models.Model):
+    incident = models.ForeignKey(
+        Incident,
+        on_delete=models.CASCADE,
+        related_name="votes",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="incident_votes",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["incident", "user"],
+                name="unique_incident_vote_per_user",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["incident", "created_at"],
+                name="inc_vote_incident_created_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Vote for {self.incident.incident_number}"

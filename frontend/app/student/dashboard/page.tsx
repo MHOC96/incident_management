@@ -6,7 +6,6 @@ import { IncidentTable } from "@/components/dashboard/IncidentTable";
 import { StatsStrip } from "@/components/dashboard/StatsStrip";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LinkButton } from "@/components/ui/LinkButton";
-import { useAuth } from "@/hooks/useAuth";
 import { incidentService } from "@/services/incidents";
 import type { IncidentDetail, IncidentStatus } from "@/types";
 
@@ -20,7 +19,6 @@ const inProgressStatuses: IncidentStatus[] = [
 const resolvedStatuses: IncidentStatus[] = ["RESOLVED", "CLOSED"];
 
 function StudentDashboardContent() {
-  const { user } = useAuth();
   const [incidents, setIncidents] = useState<IncidentDetail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,12 +55,11 @@ function StudentDashboardContent() {
   return (
     <PageContainer width="app">
       <section className="py-8 md:py-10">
-        <h1 className="mb-2 text-[26px] font-semibold md:text-[32px]">
-          My reports
-        </h1>
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-text-secondary">Reports submitted by {user?.name}.</p>
-          <LinkButton href="/student/incidents/new" className="w-full sm:w-auto">Report an incident</LinkButton>
+          <h1 className="text-[26px] font-semibold md:text-[32px]">My reports</h1>
+          <LinkButton href="/student/incidents/new" className="w-full shrink-0 sm:w-auto">
+            Report an incident
+          </LinkButton>
         </div>
 
         {isLoading ? (
@@ -110,6 +107,7 @@ function StudentDashboardContent() {
                   }))}
                   emptyTitle="You haven't reported any incidents yet."
                   emptyDescription="Submit a report when you notice a problem on campus."
+                  showIncidentNumber={false}
                 />
               </div>
             )}

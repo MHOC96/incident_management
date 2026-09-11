@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
 from apps.common.choices import AccountStatus, OfficialPosition, UserRole
+from apps.common.validators import normalize_mc_number
 
 
 class UserManager(BaseUserManager):
@@ -66,6 +67,18 @@ class User(AbstractUser):
             models.Index(fields=["status"]),
             models.Index(fields=["mc_number"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["mc_number"],
+                condition=~models.Q(mc_number=""),
+                name="unique_nonempty_mc_number",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.mc_number:
+            self.mc_number = normalize_mc_number(self.mc_number)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.email})"

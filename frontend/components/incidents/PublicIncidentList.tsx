@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { PublicIncidentRow } from "@/components/incidents/PublicIncidentRow";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { incidentService, referenceService } from "@/services/incidents";
 import { placeholders } from "@/lib/placeholders";
-import type { Category, Location, PublicIncident } from "@/types";
+import type { Category, IncidentVoteResult, Location, PublicIncident } from "@/types";
 
 type PublicIncidentListProps = {
   limit?: number;
@@ -17,61 +17,68 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
   const [retryCount, setRetryCount] = useState(0);
   const [incidents, setIncidents] = useState<PublicIncident[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [locationId, setLocationId] = useState("");
+  const [stage, setStage] = useState<"" | "forwarded" | "in_progress" | "completed">("");
+  const [ordering, setOrdering] = useState<"recent" | "highest_votes">("recent");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const deferredQuery = useDeferredValue(query);
+
+  useEffect(() => {
+    if (limit) return;
+    void Promise.all([
+      referenceService.listCategories(),
+      referenceService.listLocations(),
+    ]).then(([categoryData, locationData]) => {
+      setCategories(categoryData);
+      setLocations(locationData);
+    }).catch(() => {
+      setError("The incident filters could not be loaded. Please refresh the page or try again later.");
+    });
+  }, [limit]);
 
   useEffect(() => {
     void (async () => {
       try {
         if (limit) {
-          const response = await incidentService.listPublic();
+          const response = await incidentService.listPublic({ ordering: "recent" });
           setIncidents(response.results);
           return;
         }
 
-        const [response, categoryData] = await Promise.all([
-          incidentService.listPublic(),
-          referenceService.listCategories(),
-        ]);
+        const response = await incidentService.listPublic({
+          q: deferredQuery,
+          category: categoryId,
+          location: locationId,
+          stage,
+          ordering,
+        });
         setIncidents(response.results);
-        setCategories(categoryData);
       } catch {
         setError("The public incident register could not be loaded. Please refresh the page or try again later.");
       } finally {
         setIsLoading(false);
       }
     })();
-  }, [limit, retryCount]);
+  }, [limit, retryCount, deferredQuery, categoryId, locationId, stage, ordering]);
 
-  const locations = useMemo(() => {
-    const unique = new Map<number, Location>();
-    incidents.forEach((incident) => {
-      unique.set(incident.location.id, incident.location);
+  const visible = typeof limit === "number" ? incidents.slice(0, limit) : incidents;
+
+  function handleVoteChange(incidentId: number, result: IncidentVoteResult) {
+    setIncidents((current) => {
+      const updated = current.map((incident) =>
+        incident.id === incidentId
+          ? { ...incident, ...result }
+          : incident,
+      );
+      return ordering === "highest_votes"
+        ? updated.sort((left, right) => right.vote_count - left.vote_count)
+        : updated;
     });
-    return Array.from(unique.values()).sort((left, right) =>
-      left.name.localeCompare(right.name),
-    );
-  }, [incidents]);
-
-  const filtered = incidents.filter((incident) => {
-    const search = query.trim().toLowerCase();
-    const matchesSearch =
-      !search ||
-      incident.incident_number.toLowerCase().includes(search) ||
-      incident.title.toLowerCase().includes(search) ||
-      incident.category.name.toLowerCase().includes(search) ||
-      incident.location.name.toLowerCase().includes(search);
-    const matchesCategory =
-      !categoryId || String(incident.category.id) === String(categoryId);
-    const matchesLocation =
-      !locationId || String(incident.location.id) === String(locationId);
-    return matchesSearch && matchesCategory && matchesLocation;
-  });
-
-  const visible = typeof limit === "number" ? filtered.slice(0, limit) : filtered;
+  }
 
   if (isLoading) {
     return (
@@ -95,8 +102,8 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
   return (
     <div>
       {limit ? null : (
-        <div className="mb-6 grid gap-3 md:grid-cols-3">
-          <label className="block text-sm font-semibold text-foreground">
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <label className="col-span-2 block text-sm font-semibold text-foreground lg:col-span-1">
           <span className="mb-2 block">Search incidents</span>
           <Input
             type="search"
@@ -140,25 +147,41 @@ export function PublicIncidentList({ limit }: PublicIncidentListProps) {
             ))}
           </Select>
           </label>
+          <label className="block text-sm font-semibold text-foreground">
+          <span className="mb-2 block">Progress</span>
+          <Select value={stage} onChange={(event) => setStage(event.target.value as typeof stage)} aria-label="Filter by progress" searchable={false}>
+            <option value="">All progress</option>
+            <option value="forwarded">Forwarded to Dean</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
+          </Select>
+          </label>
+          <label className="block text-sm font-semibold text-foreground">
+          <span className="mb-2 block">Sort by</span>
+          <Select value={ordering} onChange={(event) => setOrdering(event.target.value as typeof ordering)} aria-label="Sort incidents" searchable={false}>
+            <option value="recent">Most recent</option>
+            <option value="highest_votes">Highest votes</option>
+          </Select>
+          </label>
         </div>
       )}
 
-      {!limit && (query || categoryId || locationId) ? (
+      {!limit && (query || categoryId || locationId || stage || ordering !== "recent") ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <p role="status" className="text-sm text-text-secondary">{visible.length} matching {visible.length === 1 ? "incident" : "incidents"}</p>
-          <Button variant="ghost" onClick={() => { setQuery(""); setCategoryId(""); setLocationId(""); }}>Clear filters</Button>
+          <Button variant="ghost" onClick={() => { setQuery(""); setCategoryId(""); setLocationId(""); setStage(""); setOrdering("recent"); }}>Clear filters</Button>
         </div>
       ) : null}
       {visible.length === 0 ? (
         <p className="border-t border-border py-8 text-text-secondary">
-          {query || categoryId || locationId
+          {query || categoryId || locationId || stage
             ? "There are no verified public incidents matching your search."
             : "No public incidents are listed at this time. Verified incidents marked as public will appear here."}
         </p>
       ) : (
         <div className="divide-y divide-border border-y border-border">
           {visible.map((incident) => (
-            <PublicIncidentRow key={incident.id} incident={incident} />
+            <PublicIncidentRow key={incident.id} incident={incident} onVoteChange={handleVoteChange} />
           ))}
         </div>
       )}

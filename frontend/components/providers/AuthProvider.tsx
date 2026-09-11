@@ -10,13 +10,13 @@ import {
   type ReactNode,
 } from "react";
 import { authService } from "@/services/auth";
-import type { User } from "@/types";
+import type { LoginPayload, User } from "@/types";
 
 type AuthContextValue = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (payload: LoginPayload) => Promise<User>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 };
@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [refreshProfile]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    await authService.login(email, password);
+  const login = useCallback(async (payload: LoginPayload) => {
+    await authService.login(payload);
     const profile = await authService.fetchProfile();
     setUser(profile);
     return profile;

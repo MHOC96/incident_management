@@ -3,20 +3,21 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.accounts.auth import ActiveAccountTokenRefreshSerializer, EmailTokenObtainPairSerializer
+from apps.accounts.auth import ActiveAccountTokenRefreshSerializer
 from apps.accounts.serializers import (
+    LoginSerializer,
     OfficialAccountSerializer,
     OfficialActivateSerializer,
     OfficialCreateSerializer,
     OfficialStatusSerializer,
-    StudentRegistrationSerializer,
+    StudentPasswordChangeSerializer,
     UserProfileSerializer,
 )
 from apps.accounts.services import activate_official_account, create_official_invitation
 from apps.common.choices import UserRole
-from apps.common.permissions import IsActiveUser, IsDean
+from apps.common.permissions import IsActiveUser, IsDean, IsStudent
 
 User = get_user_model()
 
@@ -27,12 +28,6 @@ class RegistrationThrottle(AnonRateThrottle):
 
 class LoginThrottle(AnonRateThrottle):
     scope = "login"
-
-
-class StudentRegistrationView(generics.CreateAPIView):
-    serializer_class = StudentRegistrationSerializer
-    permission_classes = [permissions.AllowAny]
-    throttle_classes = [RegistrationThrottle]
 
 
 class OfficialActivateView(APIView):
@@ -65,6 +60,20 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+class StudentPasswordChangeView(APIView):
+    permission_classes = [IsStudent]
+    throttle_classes = [LoginThrottle]
+
+    def post(self, request):
+        serializer = StudentPasswordChangeSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password updated."})
+
+
 class HealthCheckView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -72,9 +81,14 @@ class HealthCheckView(APIView):
         return Response({"status": "ok", "service": "incident-management-api"})
 
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = EmailTokenObtainPairSerializer
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
     throttle_classes = [LoginThrottle]
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
 
 
 class CustomTokenRefreshView(TokenRefreshView):

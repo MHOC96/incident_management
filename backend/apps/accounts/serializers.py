@@ -1,8 +1,15 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.accounts.auth import account_is_allowed
 from apps.accounts.models import User
 from apps.common.choices import AccountStatus, UserRole
-from apps.common.validators import validate_sri_lanka_phone
+from apps.common.validators import (
+    validate_account_password,
+    validate_mc_number,
+    validate_sri_lanka_phone,
+)
 
 
 class UserSummarySerializer(serializers.ModelSerializer):
@@ -45,37 +52,91 @@ class UserProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(str(exc)) from exc
 
 
-class StudentRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-    password_confirm = serializers.CharField(write_only=True, min_length=8)
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False, allow_blank=True)
+    mc_number = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True)
 
-    class Meta:
-        model = User
-        fields = [
-            "name",
-            "email",
-            "phone",
-            "mc_number",
-            "password",
-            "password_confirm",
-        ]
+    default_error_messages = {
+        "no_active_account": "No active account found with the given credentials",
+    }
 
     def validate(self, attrs):
-        if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+        email = (attrs.get("email") or "").strip()
+        mc_number = (attrs.get("mc_number") or "").strip()
+        password = attrs.get("password") or ""
+
+        if email and mc_number:
+            raise serializers.ValidationError(
+                "Use MC number for student sign-in or email for staff sign-in, not both."
+            )
+        if not email and not mc_number:
+            raise serializers.ValidationError(
+                "Enter your MC number or staff email."
+            )
+
+        user = None
+        if mc_number:
+            try:
+                normalized = validate_mc_number(mc_number)
+            except ValueError as exc:
+                raise serializers.ValidationError({"mc_number": str(exc)}) from exc
+            user = User.objects.filter(
+                mc_number=normalized,
+                role=UserRole.STUDENT,
+            ).first()
+        else:
+            user = (
+                User.objects.filter(email__iexact=email)
+                .exclude(role=UserRole.STUDENT)
+                .first()
+            )
+
+        if not user or not user.check_password(password) or not account_is_allowed(user):
+            raise AuthenticationFailed(
+                self.default_error_messages["no_active_account"],
+                code="no_active_account",
+            )
+
+        refresh = RefreshToken.for_user(user)
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+
+
+class StudentPasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        if getattr(user, "role", None) != UserRole.STUDENT:
+            raise serializers.ValidationError("Only students can change a password here.")
+        if not user.check_password(attrs["current_password"]):
+            raise serializers.ValidationError(
+                {"current_password": "Current password is incorrect."}
+            )
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Passwords do not match."}
+            )
+        if user.check_password(attrs["new_password"]):
+            raise serializers.ValidationError(
+                {"new_password": "Choose a password that is different from the current one."}
+            )
+        try:
+            attrs["new_password"] = validate_account_password(attrs["new_password"])
+        except ValueError as exc:
+            raise serializers.ValidationError({"new_password": str(exc)}) from exc
         return attrs
 
-    def validate_phone(self, value):
-        try:
-            return validate_sri_lanka_phone(value, required=True)
-        except ValueError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
-
-    def create(self, validated_data):
-        validated_data.pop("password_confirm")
-        password = validated_data.pop("password")
-        validated_data["role"] = UserRole.STUDENT
-        return User.objects.create_user(password=password, **validated_data)
+    def save(self, **kwargs):
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password", "updated_at"])
+        return user
 
 
 class OfficialCreateSerializer(serializers.ModelSerializer):

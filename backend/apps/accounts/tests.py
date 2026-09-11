@@ -146,7 +146,7 @@ class AuthEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
 
-    def test_student_registration_assigns_student_role(self):
+    def test_student_registration_is_disabled(self):
         response = self.client.post(
             "/api/auth/register/",
             {
@@ -159,25 +159,90 @@ class AuthEndpointTests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(response.status_code, 201)
-        user = User.objects.get(email="bad@usj.lk")
-        self.assertEqual(user.role, UserRole.STUDENT)
+        self.assertEqual(response.status_code, 404)
 
-    def test_student_registration_rejects_invalid_phone(self):
+    def test_student_logs_in_with_mc_and_cpm(self):
+        User.objects.create_user(
+            email="112257@students.sjp.ac.lk",
+            password="25660",
+            name="Student 112257",
+            role=UserRole.STUDENT,
+            mc_number="112257",
+        )
         response = self.client.post(
-            "/api/auth/register/",
+            "/api/auth/login/",
+            {"mc_number": "112257", "password": "25660"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.json())
+
+    def test_student_cannot_log_in_with_email(self):
+        User.objects.create_user(
+            email="112257@students.sjp.ac.lk",
+            password="25660",
+            name="Student 112257",
+            role=UserRole.STUDENT,
+            mc_number="112257",
+        )
+        response = self.client.post(
+            "/api/auth/login/",
+            {"email": "112257@students.sjp.ac.lk", "password": "25660"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_student_can_change_password(self):
+        student = User.objects.create_user(
+            email="112208@students.sjp.ac.lk",
+            password="25661",
+            name="Student 112208",
+            role=UserRole.STUDENT,
+            mc_number="112208",
+        )
+        self.client.force_authenticate(user=student)
+        response = self.client.post(
+            "/api/auth/change-password/",
             {
-                "name": "Test Student",
-                "email": "student2@usj.lk",
-                "phone": "0770000000",
-                "mc_number": "MC124",
-                "password": "securepass1",
-                "password_confirm": "securepass1",
+                "current_password": "25661",
+                "new_password": "CampusPass1",
+                "new_password_confirm": "CampusPass1",
             },
             format="json",
         )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("phone", response.json())
+        self.assertEqual(response.status_code, 200)
+        self.client.force_authenticate(user=None)
+        old_login = self.client.post(
+            "/api/auth/login/",
+            {"mc_number": "112208", "password": "25661"},
+            format="json",
+        )
+        self.assertEqual(old_login.status_code, 401)
+        new_login = self.client.post(
+            "/api/auth/login/",
+            {"mc_number": "112208", "password": "CampusPass1"},
+            format="json",
+        )
+        self.assertEqual(new_login.status_code, 200)
+
+    def test_staff_change_password_endpoint_is_student_only(self):
+        admin = User.objects.create_user(
+            email="admin-password@usj.lk",
+            password="testpass123",
+            name="Test Admin",
+            role=UserRole.ADMIN,
+        )
+        self.client.force_authenticate(user=admin)
+        response = self.client.post(
+            "/api/auth/change-password/",
+            {
+                "current_password": "testpass123",
+                "new_password": "CampusPass1",
+                "new_password_confirm": "CampusPass1",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_inactive_official_cannot_login(self):
         official = User.objects.create_user(

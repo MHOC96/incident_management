@@ -1,8 +1,8 @@
-from django.db.models import Prefetch
+from django.db.models import BooleanField, Count, Exists, OuterRef, Prefetch, Value
 
 from apps.assignments.models import Assignment
-from apps.common.choices import IncidentStatus, IncidentVisibility
-from apps.incidents.models import Incident
+from apps.common.choices import IncidentStatus, IncidentVisibility, UserRole
+from apps.incidents.models import Incident, IncidentVote
 
 PUBLIC_VISIBLE_STATUSES = (
     IncidentStatus.VERIFIED,
@@ -35,8 +35,19 @@ def optimized_incident_queryset():
     )
 
 
-def public_incident_queryset():
-    return Incident.objects.filter(
+def public_incident_queryset(user=None):
+    queryset = Incident.objects.filter(
         visibility=IncidentVisibility.PUBLIC,
         status__in=PUBLIC_VISIBLE_STATUSES,
-    ).select_related("category", "location").prefetch_related("images")
+    ).select_related("category", "location").prefetch_related("images").annotate(
+        vote_count=Count("votes", distinct=True),
+    )
+    if user and user.is_authenticated and user.role == UserRole.STUDENT:
+        return queryset.annotate(
+            user_has_upvoted=Exists(
+                IncidentVote.objects.filter(incident=OuterRef("pk"), user=user),
+            ),
+        )
+    return queryset.annotate(
+        user_has_upvoted=Value(False, output_field=BooleanField()),
+    )

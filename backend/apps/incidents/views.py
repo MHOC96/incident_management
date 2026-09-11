@@ -28,7 +28,7 @@ from apps.common.choices import IncidentStatus, MessageChannel, NotificationType
 from apps.common.permissions import IsActiveUser, IsAdmin, IsDean, IsOfficial, IsStaffRole, IsStudent
 from apps.communications.models import Message
 from apps.incidents.cloudinary_service import upload_incident_image
-from apps.incidents.models import Category, Incident, IncidentImage, Location
+from apps.incidents.models import Category, Incident, IncidentImage, IncidentVote, Location
 from apps.incidents.permissions import IncidentObjectPermission
 from apps.incidents.serializers import (
     CategorySerializer,
@@ -101,7 +101,7 @@ class IncidentViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not user.is_authenticated:
-            return public_incident_queryset()
+            return public_incident_queryset(user)
 
         queryset = optimized_incident_queryset()
 
@@ -132,6 +132,8 @@ class IncidentViewSet(viewsets.ModelViewSet):
         if self.action in {"list_public", "retrieve_public"}:
             return [permissions.AllowAny()]
         if self.action == "create":
+            return [IsStudent()]
+        if self.action == "toggle_vote":
             return [IsStudent()]
         if self.action in {"pending_review", "review_stats"}:
             return [IsAdmin()]
@@ -407,19 +409,82 @@ class IncidentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="public")
     def list_public(self, request):
-        queryset = public_incident_queryset()
+        queryset = public_incident_queryset(request.user)
+        stage = request.query_params.get("stage")
+        if stage == "forwarded":
+            queryset = queryset.filter(
+                status__in=[
+                    IncidentStatus.VERIFIED,
+                    IncidentStatus.FORWARDED_TO_DEAN,
+                    IncidentStatus.ASSIGNED,
+                ],
+            )
+        elif stage == "in_progress":
+            queryset = queryset.filter(status=IncidentStatus.IN_PROGRESS)
+        elif stage == "completed":
+            queryset = queryset.filter(
+                status__in=[IncidentStatus.RESOLVED, IncidentStatus.CLOSED],
+            )
+
+        search = request.query_params.get("q", "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(incident_number__icontains=search)
+                | Q(title__icontains=search)
+                | Q(category__name__icontains=search)
+                | Q(location__name__icontains=search),
+            )
+
+        category = request.query_params.get("category")
+        if category and category.isdigit():
+            queryset = queryset.filter(category_id=int(category))
+
+        location = request.query_params.get("location")
+        if location and location.isdigit():
+            queryset = queryset.filter(location_id=int(location))
+
+        ordering = request.query_params.get("ordering", "recent")
+        if ordering == "highest_votes":
+            queryset = queryset.order_by("-vote_count", "-created_at")
+        else:
+            queryset = queryset.order_by("-created_at")
         page = self.paginate_queryset(queryset)
-        serializer = PublicIncidentSerializer(page, many=True)
+        serializer = PublicIncidentSerializer(
+            page,
+            many=True,
+            context={"request": request},
+        )
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=["get"], url_path="public")
     def retrieve_public(self, request, pk=None):
-        incident = public_incident_queryset().filter(pk=pk).first()
+        incident = public_incident_queryset(request.user).filter(pk=pk).first()
         if not incident:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = PublicIncidentSerializer(incident)
+        serializer = PublicIncidentSerializer(incident, context={"request": request})
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="vote")
+    def toggle_vote(self, request, pk=None):
+        incident = public_incident_queryset(request.user).filter(pk=pk).first()
+        if not incident:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            vote, created = IncidentVote.objects.get_or_create(
+                incident=incident,
+                user=request.user,
+            )
+            if not created:
+                vote.delete()
+
+        return Response(
+            {
+                "vote_count": IncidentVote.objects.filter(incident=incident).count(),
+                "user_has_upvoted": created,
+            },
+        )
 
     def _transition(self, incident, new_status, extra=None):
         if not is_valid_status_transition(incident.status, new_status):

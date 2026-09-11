@@ -18,7 +18,10 @@ export default function AboutPage() {
         <ol className="workflow-list">
           {steps.map(([title, description], index) => (
             <li key={title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
+              <span className="workflow-step-number" aria-label={`Step ${index + 1}`}>
+                <span>0</span>
+                <span>{index + 1}</span>
+              </span>
               <div><h3>{title}</h3><p>{description}</p></div>
             </li>
           ))}

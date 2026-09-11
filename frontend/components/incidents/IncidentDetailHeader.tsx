@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { IncidentPriorityBadge } from "@/components/incidents/IncidentPriorityBadge";
 import { IncidentStatusBadge } from "@/components/incidents/IncidentStatusBadge";
 import type { Category, IncidentPriority, IncidentStatus, Location } from "@/types";
@@ -15,6 +16,9 @@ type IncidentDetailHeaderProps = {
   summary?: string;
   showPriority?: boolean;
   showBorderBottom?: boolean;
+  showIncidentNumber?: boolean;
+  voteCount?: number;
+  titleActions?: ReactNode;
 };
 
 function getHeaderLocation(location: Location): string {
@@ -33,6 +37,9 @@ export function IncidentDetailHeader({
   summary,
   showPriority = true,
   showBorderBottom = true,
+  showIncidentNumber = true,
+  voteCount,
+  titleActions,
 }: IncidentDetailHeaderProps) {
   return (
     <header
@@ -45,17 +52,29 @@ export function IncidentDetailHeader({
         {backLabel}
       </Link>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="text-sm text-text-muted">{incidentNumber}</p>
-        <IncidentStatusBadge status={status} />
-        {showPriority && priority ? (
-          <IncidentPriorityBadge priority={priority} />
-        ) : null}
-      </div>
+      {showIncidentNumber || (showPriority && priority) ? (
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {showIncidentNumber ? (
+            <p className="text-sm text-text-muted">{incidentNumber}</p>
+          ) : null}
+          {showPriority && priority ? (
+            <IncidentPriorityBadge priority={priority} />
+          ) : null}
+        </div>
+      ) : null}
 
-      <h1 className="mt-2 min-w-0 break-words text-[24px] font-semibold leading-tight md:text-[30px]">
-        {title}
-      </h1>
+      <div className={`${showIncidentNumber || (showPriority && priority) ? "mt-2" : "mt-4"} flex items-start gap-3`}>
+        <h1 className="public-incident-title min-w-0 flex-1 break-words text-[24px] font-semibold leading-tight md:text-[30px]">
+          {title}
+          {voteCount !== undefined ? (
+            <span className="ml-2 whitespace-nowrap text-[18px] font-semibold text-text-secondary md:text-[22px]">
+              · {voteCount} {voteCount === 1 ? "vote" : "votes"}
+            </span>
+          ) : null}
+          <IncidentStatusBadge status={status} />
+        </h1>
+        {titleActions ? <div className="shrink-0">{titleActions}</div> : null}
+      </div>
 
       <p className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
         <span>

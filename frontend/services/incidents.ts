@@ -4,22 +4,41 @@ import type {
   IncidentCreatePayload,
   IncidentDetail,
   IncidentImage,
+  IncidentVoteResult,
   Location,
   PaginatedResponse,
   PublicIncident,
   StudentIncident,
 } from "@/types";
 
+export type PublicIncidentQuery = {
+  q?: string;
+  category?: string;
+  location?: string;
+  stage?: "" | "forwarded" | "in_progress" | "completed";
+  ordering?: "recent" | "highest_votes";
+};
+
+function buildPublicQuery(params: PublicIncidentQuery = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) query.set(key, value);
+  });
+  const suffix = query.toString();
+  return suffix ? `?${suffix}` : "";
+}
+
 export const incidentService = {
-  listPublic: () =>
-    apiClient.get<PaginatedResponse<PublicIncident>>("/incidents/public/", {
-      auth: false,
-    }),
+  listPublic: (params?: PublicIncidentQuery) =>
+    apiClient.get<PaginatedResponse<PublicIncident>>(
+      `/incidents/public/${buildPublicQuery(params)}`,
+    ),
 
   getPublic: (id: number) =>
-    apiClient.get<PublicIncident>(`/incidents/${id}/public/`, {
-      auth: false,
-    }),
+    apiClient.get<PublicIncident>(`/incidents/${id}/public/`),
+
+  toggleVote: (id: number) =>
+    apiClient.post<IncidentVoteResult>(`/incidents/${id}/vote/`),
 
   listMine: () => apiClient.get<PaginatedResponse<IncidentDetail>>("/incidents/"),
 

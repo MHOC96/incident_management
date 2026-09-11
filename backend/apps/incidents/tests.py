@@ -8,7 +8,7 @@ from apps.common.authorization import (
     user_can_start_progress_incident,
 )
 from apps.common.choices import IncidentStatus, IncidentVisibility, UserRole
-from apps.incidents.models import Category, Incident, Location
+from apps.incidents.models import Category, Incident, IncidentVote, Location
 from apps.notifications.models import Notification
 
 User = get_user_model()
@@ -405,3 +405,102 @@ class DeanOversightTests(TestCase):
         self.client.force_authenticate(user=self.student)
         response = self.client.get("/api/incidents/currently-underway/")
         self.assertEqual(response.status_code, 403)
+
+
+class IncidentVoteTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.student = User.objects.create_user(
+            email="voter@usj.lk",
+            password="testpass123",
+            name="Voting Student",
+            mc_number="MC-VOTE-1",
+            role=UserRole.STUDENT,
+        )
+        self.other_student = User.objects.create_user(
+            email="other-voter@usj.lk",
+            password="testpass123",
+            name="Other Voting Student",
+            mc_number="MC-VOTE-2",
+            role=UserRole.STUDENT,
+        )
+        self.official = User.objects.create_user(
+            email="vote-official@usj.lk",
+            password="testpass123",
+            name="Voting Official",
+            role=UserRole.OFFICIAL,
+        )
+        category = Category.objects.create(name="Safety", slug="vote-safety")
+        location = Location.objects.create(name="Library entrance")
+        self.incident = Incident.objects.create(
+            incident_number="INC-2026-00901",
+            title="Slippery entrance",
+            description="The same issue affects several students.",
+            category=category,
+            location=location,
+            reporter=self.student,
+            status=IncidentStatus.IN_PROGRESS,
+            visibility=IncidentVisibility.PUBLIC,
+        )
+        self.completed = Incident.objects.create(
+            incident_number="INC-2026-00902",
+            title="Repaired light",
+            description="The light has been repaired.",
+            category=category,
+            location=location,
+            reporter=self.other_student,
+            status=IncidentStatus.CLOSED,
+            visibility=IncidentVisibility.PUBLIC,
+        )
+
+    def test_student_can_toggle_one_vote(self):
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.post(f"/api/incidents/{self.incident.id}/vote/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"vote_count": 1, "user_has_upvoted": True})
+        self.assertEqual(IncidentVote.objects.filter(incident=self.incident).count(), 1)
+
+        response = self.client.post(f"/api/incidents/{self.incident.id}/vote/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"vote_count": 0, "user_has_upvoted": False})
+        self.assertFalse(IncidentVote.objects.filter(incident=self.incident).exists())
+
+    def test_vote_requires_student_authentication(self):
+        response = self.client.post(f"/api/incidents/{self.incident.id}/vote/")
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_authenticate(user=self.official)
+        response = self.client.post(f"/api/incidents/{self.incident.id}/vote/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_private_incident_cannot_be_upvoted(self):
+        self.incident.visibility = IncidentVisibility.PRIVATE
+        self.incident.save(update_fields=["visibility"])
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(f"/api/incidents/{self.incident.id}/vote/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_public_serializer_returns_count_and_current_vote(self):
+        IncidentVote.objects.create(incident=self.incident, user=self.student)
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get(f"/api/incidents/{self.incident.id}/public/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["vote_count"], 1)
+        self.assertTrue(response.json()["user_has_upvoted"])
+
+    def test_public_list_filters_stage_and_orders_by_votes(self):
+        IncidentVote.objects.create(incident=self.incident, user=self.student)
+        IncidentVote.objects.create(incident=self.incident, user=self.other_student)
+        IncidentVote.objects.create(incident=self.completed, user=self.student)
+
+        response = self.client.get("/api/incidents/public/?ordering=highest_votes")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["results"][0]["id"], self.incident.id)
+
+        response = self.client.get("/api/incidents/public/?stage=completed")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item["id"] for item in response.json()["results"]],
+            [self.completed.id],
+        )

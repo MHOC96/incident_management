@@ -396,23 +396,22 @@ Do not simultaneously introduce unrelated authentication mechanisms without a cl
 
 # 15. Student Account Creation
 
-Students can self-register.
+Students cannot self-register.
 
-Required information:
+Student accounts are provisioned from the university student roster.
 
 ```text
-Full Name
-MC Number
-Email
-Contact Number
-Password
-Department
-Academic Year
+MC number  = username
+CPM number = initial password
 ```
 
-Students must never be able to select privileged roles during registration.
+Students sign in with the MC and CPM numbers issued by the university.
 
-Registration must never accept:
+After a successful sign-in, a student may change the initial CPM password.
+
+Students must never be able to select privileged roles.
+
+Do not accept:
 
 ```text
 role=DEAN
@@ -1607,8 +1606,8 @@ View internal communication
 Students should be able to:
 
 ```text
-Register
-Login
+Sign in with MC number and CPM number
+Change password after first sign-in
 View public incidents
 Submit an incident
 Upload an image
@@ -2101,7 +2100,9 @@ Test important business rules.
 Minimum areas:
 
 ```text
-Student registration
+Student roster import
+Login with MC and CPM
+Student password change
 Login
 Incident creation
 Public/private visibility
@@ -2540,7 +2541,7 @@ Business workflow:
 
 The following rules must remain true unless the project requirements explicitly change:
 
-1. Students may self-register.
+1. Students may not self-register. They sign in with university MC and CPM numbers.
 2. Officials may not self-register.
 3. The Dean creates and manages official accounts.
 4. The Dean has the highest application authority.

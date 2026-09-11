@@ -20,15 +20,15 @@ export function Header() {
     ...(!isAuthenticated
       ? [
           { href: "/", label: "Home" },
+          { href: "/incidents", label: "Public incidents" },
           { href: "/about", label: "About the service" },
         ]
-      : []),
-    { href: "/incidents", label: "Public incidents" },
+      : [{ href: "/incidents", label: "Public incidents" }]),
     ...(isAuthenticated && user
       ? [{ href: getDashboardRoute(user.role), label: getDashboardLabel(user.role) },
         ...(user.role === "DEAN" ? [{ href: "/dean/users", label: "Official accounts" }] : []),
         ...(user.role === "STUDENT" ? [{ href: "/student/incidents/new", label: "Report an incident" }] : [])]
-      : [{ href: "/register", label: "Student registration" }]),
+      : []),
   ];
   const active = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
 

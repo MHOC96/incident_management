@@ -1023,7 +1023,7 @@ Use charts only where they communicate something useful.
 
 The Dean can create and manage official accounts.
 
-Students self-register.
+Students sign in with university MC and CPM numbers. They cannot self-register.
 
 Officials do not self-register.
 

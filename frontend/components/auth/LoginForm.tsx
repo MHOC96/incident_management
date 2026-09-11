@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -12,10 +11,18 @@ import { formatApiError, getFieldErrors } from "@/lib/errors";
 import { placeholders } from "@/lib/placeholders";
 import { getDashboardRoute } from "@/lib/routes";
 
+function buildLoginPayload(username: string, password: string) {
+  const trimmed = username.trim();
+  if (trimmed.includes("@")) {
+    return { email: trimmed, password };
+  }
+  return { mc_number: trimmed, password };
+}
+
 export function LoginForm() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
@@ -28,8 +35,12 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const profile = await login(email.trim(), password);
-      router.push(getDashboardRoute(profile.role));
+      const profile = await login(buildLoginPayload(username, password));
+      const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+      const safeReturnTo = returnTo?.startsWith("/") && !returnTo.startsWith("//")
+        ? returnTo
+        : getDashboardRoute(profile.role);
+      router.push(safeReturnTo);
     } catch (error) {
       setFormError(formatApiError(error, "We couldn't sign you in. Please check your details."));
       setErrors(getFieldErrors(error));
@@ -38,23 +49,34 @@ export function LoginForm() {
     }
   }
 
+  const usernameError = errors.mc_number || errors.email;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-2">
-      <FormField label="Email" htmlFor="email" required error={errors.email}>
+      <FormField
+        label="Username (MC number)"
+        htmlFor="username"
+        required
+        error={usernameError}
+      >
         <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder={placeholders.email}
-          hasError={Boolean(errors.email)}
+          id="username"
+          name="username"
+          autoComplete="username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder={placeholders.username}
+          hasError={Boolean(usernameError)}
           required
         />
       </FormField>
 
-      <FormField label="Password" htmlFor="password" required error={errors.password}>
+      <FormField
+        label="Password (CPM number)"
+        htmlFor="password"
+        required
+        error={errors.password}
+      >
         <PasswordInput
           id="password"
           name="password"
@@ -74,19 +96,12 @@ export function LoginForm() {
       ) : null}
 
       <p className="mb-4 text-sm text-text-secondary">
-        Contact the faculty office if you cannot sign in.
+        Student accounts are issued by the university. Contact the faculty office if you cannot sign in.
       </p>
 
       <Button type="submit" className="mt-2 w-full" isLoading={isSubmitting} loadingText="Signing in...">
         Sign in
       </Button>
-
-      <p className="pt-4 text-sm text-text-secondary">
-        Don&apos;t have an account?{" "}
-        <Link href="/register" className="font-medium text-primary hover:text-primary-dark">
-          Register as a student
-        </Link>
-      </p>
     </form>
   );
 }

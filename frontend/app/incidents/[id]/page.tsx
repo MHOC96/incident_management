@@ -54,7 +54,9 @@ export default function PublicIncidentDetailPage() {
               backHref="/incidents"
               backLabel="Back to public incidents"
               incidentNumber={incident.incident_number}
+              showIncidentNumber={false}
               title={incident.title}
+              voteCount={incident.vote_count}
               status={incident.status}
               location={incident.location}
               category={incident.category}

@@ -117,6 +117,7 @@ function StudentIncidentDetailContent() {
           backHref="/student/dashboard"
           backLabel="Back to my reports"
           incidentNumber={incident.incident_number}
+          showIncidentNumber={false}
           title={incident.title}
           status={incident.status}
           priority={incident.priority}

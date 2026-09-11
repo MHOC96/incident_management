@@ -36,13 +36,16 @@ export type User = {
   created_at: string;
 };
 
-export type StudentRegistrationPayload = {
-  name: string;
-  email: string;
-  phone: string;
-  mc_number: string;
+export type LoginPayload = {
+  email?: string;
+  mc_number?: string;
   password: string;
-  password_confirm: string;
+};
+
+export type PasswordChangePayload = {
+  current_password: string;
+  new_password: string;
+  new_password_confirm: string;
 };
 
 export type AuthTokens = {
@@ -97,11 +100,18 @@ export type PublicIncident = {
   priority: IncidentPriority | null;
   visibility: IncidentVisibility;
   images: IncidentImage[];
+  vote_count: number;
+  user_has_upvoted: boolean;
   created_at: string;
   updated_at: string;
   verified_at?: string | null;
   resolved_at?: string | null;
   closed_at?: string | null;
+};
+
+export type IncidentVoteResult = {
+  vote_count: number;
+  user_has_upvoted: boolean;
 };
 
 export type IncidentDetail = PublicIncident & {
