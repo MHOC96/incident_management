@@ -19,8 +19,12 @@ export default function AboutPage() {
           {steps.map(([title, description], index) => (
             <li key={title}>
               <span className="workflow-step-number" aria-label={`Step ${index + 1}`}>
-                <span>0</span>
-                <span>{index + 1}</span>
+                <span className="workflow-step-digit workflow-step-digit-leading" aria-hidden="true">
+                  0
+                </span>
+                <span className="workflow-step-digit workflow-step-digit-unit" aria-hidden="true">
+                  {index + 1}
+                </span>
               </span>
               <div><h3>{title}</h3><p>{description}</p></div>
             </li>
